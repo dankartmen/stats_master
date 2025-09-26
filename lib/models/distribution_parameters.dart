@@ -1,14 +1,19 @@
+import 'package:equatable/equatable.dart';
+
 import 'distribution_type.dart';
 
 /// {@template distribution_parameters}
 /// Базовый класс для параметров распределения.
 /// {@endtemplate}
-abstract class DistributionParameters {
+abstract class DistributionParameters with EquatableMixin{
   /// {@macro distribution_parameters}
   const DistributionParameters({required this.type});
 
   /// Тип распределения
   final DistributionType type;
+
+  @override
+  List<Object?> get props => [type];
 }
 
 /// {@template binomial_parameters}
@@ -26,6 +31,9 @@ class BinomialParameters extends DistributionParameters {
 
   /// Вероятность успеха
   final double p;
+
+  @override
+  List<Object?> get props => [type,n,p];
 }
 
 /// {@template uniform_parameters}
@@ -43,4 +51,7 @@ class UniformParameters extends DistributionParameters {
 
   /// Верхняя граница интервала
   final double b;
+
+  @override
+  List<Object?> get props => [type,a,b];
 }

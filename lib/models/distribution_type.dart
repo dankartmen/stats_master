@@ -1,3 +1,5 @@
+import 'package:equatable/equatable.dart';
+
 /// {@template distribution_type}
 /// Перечисление поддерживаемых типов распределений.
 /// {@endtemplate}
@@ -24,7 +26,7 @@ enum DistributionCategory {
 /// {@template distribution_info}
 /// Метаинформация о распределении.
 /// {@endtemplate}
-class DistributionInfo {
+class DistributionInfo with EquatableMixin{
   /// {@macro distribution_info}
   const DistributionInfo({
     required this.type,
@@ -44,4 +46,7 @@ class DistributionInfo {
 
   /// Описание распределения
   final String description;
+
+  @override
+  List<Object> get props => [type,name,category,description];
 }
