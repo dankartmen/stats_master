@@ -11,7 +11,7 @@ class GeneratedValue with EquatableMixin {
     required this.additionalInfo,
   });
 
-  final double value;
+  final int value;
   final double randomU;
   final Map<String, dynamic> additionalInfo;
 

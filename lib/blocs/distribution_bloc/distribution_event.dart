@@ -8,6 +8,9 @@ abstract class DistributionEvent with EquatableMixin{
   List<Object?> get props => [];
 }
 
+/// {@template distribution_parameters_changed}
+/// Событие выбора распределения.
+/// {@endtemplate}
 class DistributionTypeSelect extends DistributionEvent{
 
   final String distributionType;
@@ -41,6 +44,13 @@ class DistributionGenerateRequest extends DistributionEvent{
 
   @override
   List<Object?> get props => [sampleSize];
+}
+
+/// {@template distribution_results_closed}
+/// Событие закрытия экрана результатов.
+/// {@endtemplate}
+class DistributionResultsClosed extends DistributionEvent {
+  DistributionResultsClosed();
 }
 
 class DistributionReset extends DistributionEvent {}

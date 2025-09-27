@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:stats_master/blocs/distribution_bloc/distribution_state.dart';
-import 'package:stats_master/screens/parameters_screen.dart.dart';
+import '../blocs/distribution_bloc/distribution_state.dart';
+import 'parameters_screen.dart.dart';
 import '../blocs/distribution_bloc/distribution_bloc.dart';
 import '../models/distribution_parameters.dart';
 import '../models/distribution_type.dart';
@@ -161,7 +161,7 @@ class _DistributionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha:0.2),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: Colors.white, size: 32),
@@ -180,7 +180,7 @@ class _DistributionCard extends StatelessWidget {
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha:0.8),
                   fontSize: 12,
                 ),
               ),
@@ -188,7 +188,7 @@ class _DistributionCard extends StatelessWidget {
               Text(
                 description,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 11,
                 ),
                 textAlign: TextAlign.center,
@@ -202,9 +202,6 @@ class _DistributionCard extends StatelessWidget {
   }
 
   void _selectDistribution(BuildContext context) {
-    // Виброотклик (если доступен)
-    // HapticFeedback.lightImpact();
-
     final parameters = _createDefaultParameters(type);
     
     context.read<DistributionBloc>().add(

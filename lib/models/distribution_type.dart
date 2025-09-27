@@ -4,14 +4,10 @@ import 'package:equatable/equatable.dart';
 /// Перечисление поддерживаемых типов распределений.
 /// {@endtemplate}
 enum DistributionType {
-  /// {@template binomial_distribution}
   /// Дискретное биномиальное распределение
-  /// {@endtemplate}
   binomial,
 
-  /// {@template uniform_distribution}
   /// Непрерывное равномерное распределение
-  /// {@endtemplate}
   uniform,
 }
 
@@ -27,7 +23,7 @@ enum DistributionCategory {
 /// Метаинформация о распределении.
 /// {@endtemplate}
 class DistributionInfo with EquatableMixin{
-  /// {@macro distribution_info}
+
   const DistributionInfo({
     required this.type,
     required this.name,

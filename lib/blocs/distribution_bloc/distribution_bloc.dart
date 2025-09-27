@@ -1,6 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:equatable/equatable.dart';
+
 import '../../repositories/distribution_repository.dart';
 import 'distribution_event.dart';
 import 'distribution_state.dart';
@@ -14,14 +15,13 @@ class DistributionBloc extends Bloc<DistributionEvent, DistributionState> {
     on<DistributionTypeSelect>(_onDistributionTypeSelected);
     on<DistributionParametersChanged>(_onDistributionParametersChanged);
     on<DistributionGenerateRequest>(_onDistributionGenerateRequested);
+    on<DistributionResultsClosed>(_onDistributionResultsClosed);
     on<DistributionReset>(_onDistributionReset);
   }
   FutureOr<void> _onDistributionTypeSelected(
     DistributionTypeSelect event,
     Emitter<DistributionState> emit,
   ) {
-    // Здесь будет логика создания параметров по умолчанию
-    // для выбранного типа распределения
     emit(const DistributionSelection());
   }
 
@@ -42,18 +42,31 @@ class DistributionBloc extends Bloc<DistributionEvent, DistributionState> {
     emit(const DistributionLoadInProgress());
 
     try {
-      final generatedValues = await _repository.generateValues(
+      final generatedResult = await _repository.generateValues(
         parameters: currentState.parameters,
         sampleSize: event.sampleSize,
       );
 
       emit(DistributionGenerationSuccess(
         parameters: currentState.parameters,
-        generatedValues: generatedValues,
+        generatedValues: generatedResult.values,
         sampleSize: event.sampleSize,
+        cumulativeProbabilities: generatedResult.cumulativeProbabilities,
+        frequencyDict: generatedResult.frequencyDict,
       ));
     } catch (error) {
       emit(DistributionErrorState(error.toString()));
+    }
+  }
+
+  FutureOr<void> _onDistributionResultsClosed(
+    DistributionResultsClosed event,
+    Emitter<DistributionState> emit,
+  ) {
+    // Возвращаемся к состоянию ввода параметров
+    if (state is DistributionGenerationSuccess) {
+      final successState = state as DistributionGenerationSuccess;
+      emit(DistributionParametersInput(parameters: successState.parameters));
     }
   }
 

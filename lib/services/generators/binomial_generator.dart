@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/distribution_parameters.dart';
 import '../../models/generated_value.dart';
+import '../../models/generation_result.dart';
 import 'distribution_generator.dart';
 
 /// {@template binomial_generator}
@@ -10,7 +11,7 @@ import 'distribution_generator.dart';
 /// {@endtemplate}
 class BinomialGenerator implements DistributionGenerator{
   @override
-  List<GeneratedValue> generateValues({required DistributionParameters parameters, required int sampleSize}){
+  GenerationResult generateValues({required DistributionParameters parameters, required int sampleSize,}){
     if (parameters is! BinomialParameters){
       throw ArgumentError('Ожидаются параметры биноминального распределения');
     }
@@ -19,21 +20,32 @@ class BinomialGenerator implements DistributionGenerator{
     final cumulativeProbabilities = _createCumulativeProbabilities(n,p);
     final random = Random();
     final results = <GeneratedValue>[];
+    final frequencyDict = <int, int>{};
+
+    // Инициализируем словарь частот
+    for (int i = 0; i <= n; i++) {
+      frequencyDict[i] = 0;
+    }
 
     for(int i = 0; i < sampleSize; i++){
       final u = random.nextDouble();
       final value = _findValueInCumulative(u, cumulativeProbabilities);
       results.add(GeneratedValue(
-        value: value.toDouble(),
+        value: value,
         randomU: u, 
         additionalInfo: {
-          'n': n,
-          'p': p,
           'cumulativeIndex': value,
         }
       ));
+      frequencyDict[value] = frequencyDict[value]! + 1;
     }
-    return results;
+    return GenerationResult(
+      values: results,
+      parameters: parameters,
+      sampleSize: sampleSize,
+      frequencyDict: frequencyDict,
+      cumulativeProbabilities: cumulativeProbabilities,
+    );
   }
 
   int _findValueInCumulative(double u, List<double> cumulativeProbabilities){
@@ -94,37 +106,6 @@ class BinomialGenerator implements DistributionGenerator{
     final coefficient = _binomialCoefficient(n, m);
     return (coefficient * pow(p, m) * pow(q, n - m)).toDouble();
     
-  }
-
-  /// Метод для создания массива кумулятивных вероятностей.
-  /// Строит последовательность a_0, a_1, ..., a_n где a_i = ∑_{i=1}^{n} P_i (сумма вероятностей от 1 до i-той)
-  /// Принимает:
-  /// - [n] - количество испытаний
-  /// - [p] - вероятность успеха
-  /// Возвращает:
-  /// - массив кумулятивных вероятностей длиной n+1
-  List<double> _createProbabilities(int n, double p) {
-    final probabilities = List<double>.generate(n + 1, (m) => _binomialProbability(n, p, m));
-    
-    // Нормализуем вероятности (из-за ошибок округления сумма может быть ≠ 1)
-    final sum = probabilities.reduce((a, b) => a + b);
-    final normalized = probabilities.map((prob) => prob / sum).toList();
-    
-    // Строим кумулятивные вероятности
-    final cumulative = List<double>.filled(n + 1, 0.0);
-    cumulative[0] = normalized[0];
-    debugPrint('Вероятность для X = 0 равна ${normalized[0]}');
-    
-    for (int i = 1; i <= n; i++) {
-      debugPrint('Вероятность для X = $i равна ${normalized[i]}');
-      cumulative[i] = cumulative[i - 1] + normalized[i];
-      debugPrint('Кумулятивная вероятность для X = $i равна ${cumulative[i]}');
-    }
-    
-    // Гарантируем, что последнее значение равно 1.0
-    cumulative[n] = 1.0;
-    
-    return cumulative;
   }
 
   /// Метод для создания массива кумулятивных вероятностей.

@@ -52,13 +52,28 @@ class DistributionGenerationSuccess extends DistributionState {
   final DistributionParameters parameters;
   final List<GeneratedValue> generatedValues;
   final int sampleSize;
+  /// Словарь частот {значение: количество}
+  final Map<int, int> frequencyDict;
+  /// Кумулятивные вероятности [a_0, a_1, ..., a_n]
+  final List<double> cumulativeProbabilities;
 
-  const DistributionGenerationSuccess({required this.parameters, required this.generatedValues, required this.sampleSize});
+  const DistributionGenerationSuccess(
+    {
+      required this.parameters,
+      required this.generatedValues, 
+      required this.sampleSize, 
+      required this.cumulativeProbabilities, 
+      required this.frequencyDict
+    }
+  );
 
   @override
   List<Object> get props => [parameters,generatedValues,sampleSize];
 }
 
+/// {@template distribution_generation_success}
+/// Состояние ошибки.
+/// {@endtemplate}
 class DistributionErrorState extends DistributionState{
   final String error;
 

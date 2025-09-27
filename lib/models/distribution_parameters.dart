@@ -6,7 +6,6 @@ import 'distribution_type.dart';
 /// Базовый класс для параметров распределения.
 /// {@endtemplate}
 abstract class DistributionParameters with EquatableMixin{
-  /// {@macro distribution_parameters}
   const DistributionParameters({required this.type});
 
   /// Тип распределения
@@ -20,7 +19,6 @@ abstract class DistributionParameters with EquatableMixin{
 /// Параметры биномиального распределения.
 /// {@endtemplate}
 class BinomialParameters extends DistributionParameters {
-  /// {@macro binomial_parameters}
   const BinomialParameters({
     required this.n,
     required this.p,

@@ -1,8 +1,8 @@
 import '../models/distribution_parameters.dart';
 import '../models/distribution_type.dart';
-import '../models/generated_value.dart';
-import '../services/generators/distribution_generator.dart';
+import '../models/generation_result.dart';
 import '../services/generators/binomial_generator.dart';
+import '../services/generators/distribution_generator.dart';
 //import '../services/generators/uniform_generator.dart';
 
 /// {@template distribution_repository}
@@ -11,7 +11,6 @@ import '../services/generators/binomial_generator.dart';
 class DistributionRepository {
   final Map<DistributionType, DistributionGenerator> _generators;
 
-  /// {@macro distribution_repository}
   DistributionRepository()
       : _generators = {
           DistributionType.binomial: BinomialGenerator(),
@@ -19,7 +18,7 @@ class DistributionRepository {
         };
 
   /// Генерирует значения распределения.
-  List<GeneratedValue> generateValues({
+  GenerationResult generateValues({
     required DistributionParameters parameters,
     required int sampleSize,
   }) {
