@@ -6,5 +6,5 @@ import '../../models/generation_result.dart';
 /// {@endtemplate}
 abstract class DistributionGenerator {
   /// Генерируем значения распределения
-  GenerationResult generateValues({required DistributionParameters parameters, required int sampleSize});
+  GenerationResult generateResults({required DistributionParameters parameters, required int sampleSize});
 }

@@ -1,42 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:stats_master/models/distribution_parameters.dart';
-import '../models/generated_value.dart';
+import '../models/distribution_parameters.dart';
+import '../models/generation_result.dart';
+import '../models/interval.dart';
 
 class ResultsScreen extends StatelessWidget {
-  ResultsScreen(
-    {
-      super.key, 
-      required this.generatedValues, 
-      required this.parameters, 
-      required this.sampleSize,
-      required this.cumulativeProbabilities,
-      required this.frequencyDict,
-      }
-    );
+  const ResultsScreen({super.key, required this.generatedResult});
 
-  final List<GeneratedValue> generatedValues; 
-
-  final DistributionParameters parameters;
-
-
-  final int sampleSize;
-
-  /// Словарь частот {значение: количество}
-  final Map<int, int> frequencyDict;
-
-  /// Кумулятивные вероятности [a_0, a_1, ..., a_n]
-  final List<double> cumulativeProbabilities;
+  final GenerationResult generatedResult;
 
   /// Создание данных для графика
   List<FlSpot> _createChartData() {
     
     final spots = <FlSpot>[];
-    final sortedKeys = frequencyDict.keys.toList()..sort();
+    final sortedKeys = generatedResult.frequencyDict.keys.toList()..sort();
     
     for (final key in sortedKeys) {
-      final frequency = frequencyDict[key]!;
-      spots.add(FlSpot(key.toDouble(), (frequency / generatedValues.length).toDouble()));
+      final frequency = generatedResult.frequencyDict[key]!;
+      spots.add(FlSpot(key.toDouble(), (frequency / generatedResult.results.length).toDouble()));
     }
     
     return spots;
@@ -45,14 +26,14 @@ class ResultsScreen extends StatelessWidget {
 
   // Показ диалога с информацией о выбранном значении
   void _showValueDetails(BuildContext context, int index) {
-    final generatedValue = generatedValues[index];
-    final n = cumulativeProbabilities.length - 1;
+    final generatedValue = generatedResult.results[index];
+    final n = generatedResult.cumulativeProbabilities.length - 1;
     
     String cumulativeRange = '';
     if (generatedValue.value == 0) {
-      cumulativeRange = '0 ≤ u ≤ ${cumulativeProbabilities[0].toStringAsFixed(6)}';
+      cumulativeRange = '0 ≤ u ≤ ${generatedResult.cumulativeProbabilities[0].toStringAsFixed(6)}';
     } else {
-      cumulativeRange = '${cumulativeProbabilities[generatedValue.value - 1].toStringAsFixed(6)} < u ≤ ${cumulativeProbabilities[generatedValue.value].toStringAsFixed(6)}';
+      cumulativeRange = '${generatedResult.cumulativeProbabilities[generatedValue.value.toInt() - 1].toStringAsFixed(6)} < u ≤ ${generatedResult.cumulativeProbabilities[generatedValue.value.toInt()].toStringAsFixed(6)}';
     }
     
     showDialog(
@@ -74,7 +55,7 @@ class ResultsScreen extends StatelessWidget {
               const Text('Вероятности:',
                 style: TextStyle(fontWeight: FontWeight.bold)),
               for (int i = 0; i <= n; i++)
-                Text('a$i = ${cumulativeProbabilities[i].toStringAsFixed(6)}${i == generatedValue.value ? '  ←' : ''}'),
+                Text('a$i = ${generatedResult.cumulativeProbabilities[i].toStringAsFixed(6)}${i == generatedValue.value ? '  ←' : ''}'),
             ],
           ),
         ),
@@ -90,44 +71,307 @@ class ResultsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    /// индекс для выбора таблицы
-    int selectedTab = 0;
-    if (parameters is BinomialParameters){
-      final currentParameters = parameters as BinomialParameters;
-      final n = currentParameters.n;
-      final p = currentParameters.p;
-      
-      return DefaultTabController(
-        length: 3,
-        initialIndex: selectedTab,
-        child: Scaffold(
-          appBar: AppBar(
-            title: const Text('Результаты биномиального распределения'),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48),
-              child: TabBar(
-                onTap: (index) =>  selectedTab = index,
-                tabs: const [
-                  Tab(text: 'График'),
-                  Tab(text: 'Таблица'),
-                  Tab(text: 'Значения'),
-                ],
-              ),
-            ),
-          ),
-          body: TabBarView(
-                  children: [
-                    _buildChartTab(n, p, sampleSize),
-                    _buildTableTab(),
-                    _buildValuesTab(),
-                  ],
-                ),
-        ),
-      );
+    if (generatedResult.parameters is BinomialParameters){
+      return _buildBinominalResults(context);
+    } else if(generatedResult.parameters is UniformParameters){
+      return _buildUniformResults(context);
     }
     return Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text('Это распределение пока не поддерживается')],);
   }
 
+  Widget _buildBinominalResults(BuildContext context){
+    /// индекс для выбора таблицы
+    int selectedTab = 0;
+    final currentParameters = generatedResult.parameters as BinomialParameters;
+    final n = currentParameters.n;
+    final p = currentParameters.p;
+    
+    return DefaultTabController(
+      length: 3,
+      initialIndex: selectedTab,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Результаты биномиального распределения'),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(48),
+            child: TabBar(
+              onTap: (index) =>  selectedTab = index,
+              tabs: const [
+                Tab(text: 'График'),
+                Tab(text: 'Таблица'),
+                Tab(text: 'Значения'),
+              ],
+            ),
+          ),
+        ),
+        body: TabBarView(
+                children: [
+                  _buildChartTab(n, p, generatedResult.sampleSize),
+                  _buildTableTab(),
+                  _buildResultsTab(),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildUniformResults(BuildContext context) {
+    final uniformParameters = generatedResult.parameters as UniformParameters;
+    final intervalData = generatedResult.intervalData;
+
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Результаты равномерного распределения'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Гистограмма'),
+              Tab(text: 'Интервальный ряд'),
+              Tab(text: 'Значения'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildUniformHistogram(uniformParameters, intervalData),
+            _buildIntervalSeriesTable(intervalData),
+            _buildValuesTab(),
+          ],  
+        ),
+      ),
+    );
+  }
+  /// Гистограмма для равномерного распределения
+Widget _buildUniformHistogram(UniformParameters parameters, IntervalData? intervalData) {
+  if (intervalData == null) {
+    return const Center(child: Text('Нет данных для гистограммы'));
+  }
+
+  final chartData = _createUniformChartData(intervalData);
+
+  return Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Column(
+      children: [
+        Text(
+          'Равномерное распределение U(${parameters.a}, ${parameters.b})',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Размер выборки: ${generatedResult.sampleSize}, Интервалов: ${intervalData.numberOfIntervals}',
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+        ),
+        Text(
+          'Ширина интервала: ${intervalData.intervalWidth.toStringAsFixed(4)}',
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: BarChart(
+            BarChartData(
+              alignment: BarChartAlignment.spaceAround,
+              maxY: _calculateMaxFrequency(intervalData) * 1.1,
+              barGroups: chartData.map((spot) {
+                return BarChartGroupData(
+                  x: spot.x.toInt(),
+                  barRods: [
+                    BarChartRodData(
+                      toY: spot.y,
+                      width: 16,
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ],
+                  showingTooltipIndicators: [0],
+                );
+              }).toList(),
+              titlesData: FlTitlesData(
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) {
+                      if (intervalData.intervals.length > value.toInt()) {
+                        final interval = intervalData.intervals[value.toInt()];
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            '${interval.start.toStringAsFixed(2)}-${interval.end.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                        );
+                      }
+                      return Text(value.toInt().toString());
+                    },
+                  ),
+                ),
+                leftTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: true),
+                ),
+              ),
+              gridData: const FlGridData(show: true),
+              borderData: FlBorderData(show: true),
+              barTouchData: BarTouchData(
+                enabled: true,
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    final interval = intervalData.intervals[groupIndex];
+                    return BarTooltipItem(
+                      'Интервал: [${interval.start.toStringAsFixed(2)}, ${interval.end.toStringAsFixed(2)})\n'
+                      'Частота: ${interval.frequency}\n'
+                      'Отн. частота: ${(interval.frequency / generatedResult.sampleSize).toStringAsFixed(3)}',
+                      const TextStyle(color: Colors.white),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Таблица интервального вариационного ряда
+Widget _buildIntervalSeriesTable(IntervalData? intervalData) {
+  if (intervalData == null) {
+    return const Center(child: Text('Нет данных интервального ряда'));
+  }
+
+  return Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Column(
+      children: [
+        const Text(
+          'Интервальный вариационный ряд',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Количество интервалов: ${intervalData.numberOfIntervals}',
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: ListView.builder(
+            itemCount: intervalData.intervals.length,
+            itemBuilder: (context, index) {
+              final interval = intervalData.intervals[index];
+              final relativeFreq = interval.relativeFrequency(generatedResult.sampleSize);
+              final cumulativeProb = intervalData.cumulativeProbabilities[index];
+
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  title: Text(
+                    'Интервал ${index + 1}: [${interval.start.toStringAsFixed(2)}, ${interval.end.toStringAsFixed(2)})',
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Середина: ${interval.midpoint.toStringAsFixed(2)}'),
+                      Text('Частота: ${interval.frequency}'),
+                      LinearProgressIndicator(
+                        value: relativeFreq,
+                        backgroundColor: Colors.grey[200],
+                        color: Colors.green,
+                      ),
+                    ],
+                  ),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('${(relativeFreq * 100).toStringAsFixed(1)}%'),
+                      Text('Кум: ${cumulativeProb.toStringAsFixed(3)}'),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Создает данные для гистограммы равномерного распределения
+List<FlSpot> _createUniformChartData(IntervalData intervalData) {
+  final spots = <FlSpot>[];
+  
+  for (final interval in intervalData.intervals) {
+    final relativeFrequency = interval.frequency / generatedResult.sampleSize;
+    spots.add(FlSpot(interval.index.toDouble(), relativeFrequency));
+  }
+  
+  return spots;
+}
+
+/// Вычисляет максимальную частоту для шкалы Y
+double _calculateMaxFrequency(IntervalData intervalData) {
+  double maxFreq = 0.0;
+  for (final interval in intervalData.intervals) {
+    final relativeFreq = interval.frequency / generatedResult.sampleSize;
+    if (relativeFreq > maxFreq) {
+      maxFreq = relativeFreq;
+    }
+  }
+  return maxFreq;
+}
+
+  Widget _buildValuesTab() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          const Text(
+            'Сгенерированные значения',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Всего значений: ${generatedResult.results.length}',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 10,
+                crossAxisSpacing: 4,
+                mainAxisSpacing: 4,
+              ),
+              itemCount: generatedResult.results.length,
+              itemBuilder: (context, index) {
+                final value = generatedResult.results[index].value;
+                return GestureDetector(
+                  onTap: () => _showValueDetails(context, index),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue),
+                    ),
+                    child: Center(
+                      child: Text(
+                        value.toStringAsFixed(generatedResult.parameters is UniformParameters ? 2 : 0),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   /// Cоздание гистограммы для функции плотности распределения 
   Widget _buildChartTab(int n, double p, int sampleSize) {
     final chartData = _createChartData();
@@ -213,25 +457,25 @@ class ResultsScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Expanded(
             child: ListView.builder(
-              itemCount: frequencyDict.keys.length,
+              itemCount: generatedResult.frequencyDict.keys.length,
               itemBuilder: (context, index) {
-                final key = frequencyDict.keys.elementAt(index);
-                final value = frequencyDict[key] ?? 0;
-                final percentage = (value / generatedValues.length) * 100;
+                final key = generatedResult.frequencyDict.keys.elementAt(index);
+                final value = generatedResult.frequencyDict[key] ?? 0;
+                final percentage = (value / generatedResult.results.length) * 100;
                 
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   child: ListTile(
                     title: Text('Значение: $key'),
                     subtitle: LinearProgressIndicator(
-                      value: value / generatedValues.length,
+                      value: value / generatedResult.results.length,
                       backgroundColor: Colors.grey[200],
                       color: Colors.blue,
                     ),
                     trailing: Text('$value (${percentage.toStringAsFixed(1)}%)'),
                     onTap: () {
                       // Находим первое значение с этим ключом
-                      final firstIndex = generatedValues.indexWhere((v) => v.value == key);
+                      final firstIndex = generatedResult.results.indexWhere((v) => v.value == key);
                       if (firstIndex != -1) {
                         _showValueDetails(context, firstIndex);
                       }
@@ -247,7 +491,7 @@ class ResultsScreen extends StatelessWidget {
   }
 
   /// Cоздание с сгенерированными значениями
-  Widget _buildValuesTab() {
+  Widget _buildResultsTab() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -258,7 +502,7 @@ class ResultsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Всего значений: ${generatedValues.length}',
+            'Всего значений: ${generatedResult.results.length}',
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
           const SizedBox(height: 16),
@@ -269,9 +513,9 @@ class ResultsScreen extends StatelessWidget {
                 crossAxisSpacing: 4,
                 mainAxisSpacing: 4,
               ),
-              itemCount: generatedValues.length,
+              itemCount: generatedResult.results.length,
               itemBuilder: (context, index) {
-                final value = generatedValues[index].value;
+                final value = generatedResult.results[index].value;
                 return GestureDetector(
                   onTap: () => _showValueDetails(context, index),
                   child: Container(

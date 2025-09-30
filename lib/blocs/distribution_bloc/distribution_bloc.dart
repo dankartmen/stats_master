@@ -42,17 +42,13 @@ class DistributionBloc extends Bloc<DistributionEvent, DistributionState> {
     emit(const DistributionLoadInProgress());
 
     try {
-      final generatedResult = await _repository.generateValues(
+      final generatedResult = await _repository.generateResults(
         parameters: currentState.parameters,
         sampleSize: event.sampleSize,
       );
 
       emit(DistributionGenerationSuccess(
-        parameters: currentState.parameters,
-        generatedValues: generatedResult.values,
-        sampleSize: event.sampleSize,
-        cumulativeProbabilities: generatedResult.cumulativeProbabilities,
-        frequencyDict: generatedResult.frequencyDict,
+        generatedResult: generatedResult,
       ));
     } catch (error) {
       emit(DistributionErrorState(error.toString()));
@@ -66,7 +62,7 @@ class DistributionBloc extends Bloc<DistributionEvent, DistributionState> {
     // Возвращаемся к состоянию ввода параметров
     if (state is DistributionGenerationSuccess) {
       final successState = state as DistributionGenerationSuccess;
-      emit(DistributionParametersInput(parameters: successState.parameters));
+      emit(DistributionParametersInput(parameters: successState.generatedResult.parameters));
     }
   }
 

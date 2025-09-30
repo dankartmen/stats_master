@@ -81,11 +81,7 @@ void _navigateToResultsScreen(BuildContext context, DistributionGenerationSucces
         builder: (context) => BlocProvider.value(
           value: context.read<DistributionBloc>(),
           child: ResultsScreen(
-            parameters: state.parameters,
-            generatedValues: state.generatedValues,
-            sampleSize: state.sampleSize,
-            cumulativeProbabilities: state.cumulativeProbabilities,
-            frequencyDict: state.frequencyDict,
+            generatedResult: state.generatedResult,
           ),
         ),
       ),
@@ -214,7 +210,13 @@ Widget _buildSpecificParameterInputs(DistributionParameters parameters) {
           onChanged: (value) {
             final a = double.tryParse(value);
             if (a != null) {
-              // Dispatch parameter change event
+              setState(() {
+                _currentParameters = UniformParameters(
+                  a: a,
+                  b: parameters.b,
+                );
+              });
+              _dispatchParametersChange();
             }
           },
         ),
@@ -225,7 +227,13 @@ Widget _buildSpecificParameterInputs(DistributionParameters parameters) {
           onChanged: (value) {
             final b = double.tryParse(value);
             if (b != null) {
-              // Dispatch parameter change event
+              setState(() {
+                _currentParameters = UniformParameters(
+                  a: parameters.a,
+                  b: b,
+                );
+              });
+              _dispatchParametersChange();
             }
           },
         ),

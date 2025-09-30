@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../models/distribution_parameters.dart';
 import '../../models/generated_value.dart';
+import '../../models/generation_result.dart';
 
 /// {@template distribution_state}
 /// Базовое состояние DistributionBloc.
@@ -49,26 +50,17 @@ class DistributionParametersInput extends DistributionState{
 /// Состояние успешной генерации.
 /// {@endtemplate}
 class DistributionGenerationSuccess extends DistributionState {
-  final DistributionParameters parameters;
-  final List<GeneratedValue> generatedValues;
-  final int sampleSize;
-  /// Словарь частот {значение: количество}
-  final Map<int, int> frequencyDict;
-  /// Кумулятивные вероятности [a_0, a_1, ..., a_n]
-  final List<double> cumulativeProbabilities;
+  final GenerationResult generatedResult;
 
   const DistributionGenerationSuccess(
     {
-      required this.parameters,
-      required this.generatedValues, 
-      required this.sampleSize, 
-      required this.cumulativeProbabilities, 
-      required this.frequencyDict
+      required this.generatedResult,
+      
     }
   );
 
   @override
-  List<Object> get props => [parameters,generatedValues,sampleSize];
+  List<Object> get props => [generatedResult];
 }
 
 /// {@template distribution_generation_success}

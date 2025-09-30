@@ -11,7 +11,7 @@ import 'distribution_generator.dart';
 /// {@endtemplate}
 class BinomialGenerator implements DistributionGenerator{
   @override
-  GenerationResult generateValues({required DistributionParameters parameters, required int sampleSize,}){
+  GenerationResult generateResults({required DistributionParameters parameters, required int sampleSize,}){
     if (parameters is! BinomialParameters){
       throw ArgumentError('Ожидаются параметры биноминального распределения');
     }
@@ -40,7 +40,7 @@ class BinomialGenerator implements DistributionGenerator{
       frequencyDict[value] = frequencyDict[value]! + 1;
     }
     return GenerationResult(
-      values: results,
+      results: results,
       parameters: parameters,
       sampleSize: sampleSize,
       frequencyDict: frequencyDict,
