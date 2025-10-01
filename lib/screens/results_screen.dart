@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../blocs/distribution_bloc/distribution_bloc.dart';
+import '../blocs/distribution_bloc/distribution_event.dart';
 import '../models/distribution_parameters.dart';
 import '../models/generation_result.dart';
 import '../models/interval.dart';
@@ -9,6 +12,31 @@ class ResultsScreen extends StatelessWidget {
 
   final GenerationResult generatedResult;
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_getAppBarTitle()),
+        actions: [IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: () => _showSaveDialog(context),
+            tooltip: 'Сохранить результат',
+          ),
+        ],
+      ),
+      body: generatedResult.parameters is BinomialParameters
+        ? _buildBinominalResults(context)
+        : generatedResult.parameters is UniformParameters
+            ? _buildUniformResults(context)
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Это распределение пока не поддерживается'),
+                ],
+              ),
+    );
+  }
+  
   /// Создание данных для графика
   List<FlSpot> _createChartData() {
     
@@ -69,14 +97,51 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (generatedResult.parameters is BinomialParameters){
-      return _buildBinominalResults(context);
-    } else if(generatedResult.parameters is UniformParameters){
-      return _buildUniformResults(context);
-    }
-    return Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text('Это распределение пока не поддерживается')],);
+
+  void _showSaveDialog(BuildContext context) {
+    final textController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Сохранить результат'),
+        content: TextField(
+          controller: textController,
+          decoration: const InputDecoration(
+            labelText: 'Название сохранения',
+            hintText: 'Например: "Биномиальное n=10 p=0.5"',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (textController.text.trim().isNotEmpty) {
+                context.read<DistributionBloc>().add(
+                  SaveCurrentResult(textController.text.trim()),
+                );
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Результат сохранен!')),
+                );
+              }
+            },
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  String _getAppBarTitle() {
+    return switch (generatedResult.parameters) {
+      BinomialParameters() => 'Результаты биномиального распределения',
+      UniformParameters() => 'Результаты равномерного распределения',
+      _ => 'Результаты',
+    };
   }
 
   Widget _buildBinominalResults(BuildContext context){
@@ -123,7 +188,6 @@ class ResultsScreen extends StatelessWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Результаты равномерного распределения'),
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Гистограмма'),
@@ -172,13 +236,13 @@ Widget _buildUniformHistogram(UniformParameters parameters, IntervalData? interv
           child: BarChart(
             BarChartData(
               alignment: BarChartAlignment.spaceAround,
-              maxY: _calculateMaxFrequency(intervalData) * 1.1,
+              maxY: _calculateMaxFrequency(intervalData) * 5,
               barGroups: chartData.map((spot) {
                 return BarChartGroupData(
                   x: spot.x.toInt(),
                   barRods: [
                     BarChartRodData(
-                      toY: spot.y,
+                      toY: spot.y * 5,
                       width: 16,
                       color: Colors.green,
                       borderRadius: BorderRadius.circular(4),
@@ -207,25 +271,11 @@ Widget _buildUniformHistogram(UniformParameters parameters, IntervalData? interv
                   ),
                 ),
                 leftTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: true),
+                  sideTitles: SideTitles(showTitles: true, reservedSize: 35),
                 ),
               ),
               gridData: const FlGridData(show: true),
               borderData: FlBorderData(show: true),
-              barTouchData: BarTouchData(
-                enabled: true,
-                touchTooltipData: BarTouchTooltipData(
-                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    final interval = intervalData.intervals[groupIndex];
-                    return BarTooltipItem(
-                      'Интервал: [${interval.start.toStringAsFixed(2)}, ${interval.end.toStringAsFixed(2)})\n'
-                      'Частота: ${interval.frequency}\n'
-                      'Отн. частота: ${(interval.frequency / generatedResult.sampleSize).toStringAsFixed(3)}',
-                      const TextStyle(color: Colors.white),
-                    );
-                  },
-                ),
-              ),
             ),
           ),
         ),

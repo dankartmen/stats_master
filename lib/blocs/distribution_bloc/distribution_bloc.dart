@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../models/saved_result.dart';
 import '../../repositories/distribution_repository.dart';
+import '../../repositories/saved_results_repository.dart';
 import 'distribution_event.dart';
 import 'distribution_state.dart';
 
@@ -11,12 +13,20 @@ import 'distribution_state.dart';
 /// {@endtemplate}
 class DistributionBloc extends Bloc<DistributionEvent, DistributionState> {
   final DistributionRepository _repository;
-  DistributionBloc({required DistributionRepository repository}): _repository = repository, super(const DistributionInitial()) {
+  final SavedResultsRepository _savedResultsRepository;
+  
+  DistributionBloc(
+    {
+      required DistributionRepository repository,
+      required SavedResultsRepository savedResultsRepository
+    }): _repository = repository, _savedResultsRepository = savedResultsRepository, super(const DistributionInitial()) {
     on<DistributionTypeSelect>(_onDistributionTypeSelected);
     on<DistributionParametersChanged>(_onDistributionParametersChanged);
     on<DistributionGenerateRequest>(_onDistributionGenerateRequested);
     on<DistributionResultsClosed>(_onDistributionResultsClosed);
     on<DistributionReset>(_onDistributionReset);
+    on<SavedResultSelected>(_onSavedResultSelected);
+    on<SaveCurrentResult>(_onSaveCurrentResult);
   }
   FutureOr<void> _onDistributionTypeSelected(
     DistributionTypeSelect event,
@@ -72,4 +82,39 @@ class DistributionBloc extends Bloc<DistributionEvent, DistributionState> {
   ) {
     emit(const DistributionInitial());
   }
+  FutureOr<void> _onSavedResultSelected(
+    SavedResultSelected event,
+    Emitter<DistributionState> emit,
+  ) {
+    final result = event.savedResult.generationResult;
+    emit(DistributionGenerationSuccess(generatedResult: result));
+  }
+
+  FutureOr<void> _onSaveCurrentResult(
+    SaveCurrentResult event,
+    Emitter<DistributionState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! DistributionGenerationSuccess) return;
+
+    emit(const DistributionSaveInProgress());
+
+    try {
+      final savedResult = SavedResult(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: event.name,
+        generationResult: currentState.generatedResult,
+        createdAt: DateTime.now(),
+      );
+
+      await _savedResultsRepository.saveResult(savedResult);
+      emit(const DistributionSaveSuccess());
+      
+      // Возвращаемся к состоянию успешной генерации
+      emit(currentState);
+    } catch (error) {
+      emit(DistributionErrorState(error.toString()));
+    }
+  }
+
 }

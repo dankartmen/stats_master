@@ -49,10 +49,10 @@ class UniformGenerator implements DistributionGenerator{
       results: results,
       parameters: parameters,
       sampleSize: sampleSize,
-      frequencyDict: frequencyDict,
+      frequencyDict: intervalData.frequencyDict,
       cumulativeProbabilities: intervalData.cumulativeProbabilities,
       additionalInfo: {
-        'intervalData': intervalData,
+        'intervalData': intervalData.toJson(),
         'numberOfIntervals': intervalData.numberOfIntervals,
         'intervalWidth':intervalData.intervalWidth
       }
@@ -67,7 +67,7 @@ class UniformGenerator implements DistributionGenerator{
     int sampleSize
   ){
     // Определяем количество интервалов по формуле N = [log n]
-    final numberOfIntervals = _calculateNumberOfIntevals(sampleSize);
+    final numberOfIntervals = 10;// _calculateNumberOfIntevals(sampleSize);
 
     // Делим отрезок (а, b) на N одинаковых частей
     final intervalWidth = (b - a) / numberOfIntervals;
@@ -109,7 +109,7 @@ class UniformGenerator implements DistributionGenerator{
 
   }
   
-  /// Вычисляет количество интервалов по формуле N = [log n]
+  /// Вычисляет количество интервалов по формуле [N = log n]
   int _calculateNumberOfIntevals(int samoleSize){
     final logN = log(samoleSize) / ln2;
     return logN.floor();

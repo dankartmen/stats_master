@@ -5,6 +5,7 @@ import '../blocs/distribution_bloc/distribution_state.dart';
 import 'results_screen.dart';
 import '../blocs/distribution_bloc/distribution_bloc.dart';
 import '../models/distribution_parameters.dart';
+import 'saved_results_screen.dart';
 
 /// {@template parameters_screen}
 /// Экран для ввода параметров биномиального распределения.
@@ -49,8 +50,12 @@ class _ParametersScreenState extends State<ParametersScreen>{
       },
       child: Scaffold(
         appBar: AppBar(
-          title: _currentParameters is BinomialParameters ? const Text('Параметры биноминального распределения')
-                                                          : const Text('Параматры равномерного распределения'),
+          title: const Text('Параметры распределения'), 
+          actions: [IconButton(
+            icon: const Icon(Icons.folder_open),
+            onPressed: () => _navigateToSavedResults(context),
+            tooltip: 'Загрузить сохраненный результат',
+          ),],
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => _navigateBack(context),
@@ -69,6 +74,14 @@ class _ParametersScreenState extends State<ParametersScreen>{
   );
 }
 
+void _navigateToSavedResults(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const SavedResultsScreen(),
+      ),
+    );
+  }
+  
 void _navigateBack(BuildContext context) {
     // Сбрасываем состояние при возврате на предыдущий экран
     context.read<DistributionBloc>().add(DistributionReset());

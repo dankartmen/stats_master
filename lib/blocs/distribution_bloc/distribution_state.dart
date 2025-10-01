@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 import '../../models/distribution_parameters.dart';
-import '../../models/generated_value.dart';
 import '../../models/generation_result.dart';
 
 /// {@template distribution_state}
@@ -73,4 +72,18 @@ class DistributionErrorState extends DistributionState{
 
   @override
   List<Object> get props => [error];
+}
+
+/// {@template distribution_save_in_progress}
+/// Состояние сохранения результата.
+/// {@endtemplate}
+class DistributionSaveInProgress extends DistributionState {
+  const DistributionSaveInProgress();
+}
+
+/// {@template distribution_save_success}
+/// Состояние успешного сохранения.
+/// {@endtemplate}
+class DistributionSaveSuccess extends DistributionState {
+  const DistributionSaveSuccess();
 }

@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../models/distribution_parameters.dart';
+import '../../models/saved_result.dart';
 /// {@template distribution_event}
 /// Базовое событие для DistributionBloc.
 /// {@endtemplate}
@@ -51,6 +52,32 @@ class DistributionGenerateRequest extends DistributionEvent{
 /// {@endtemplate}
 class DistributionResultsClosed extends DistributionEvent {
   DistributionResultsClosed();
+}
+
+/// {@template saved_result_selected}
+/// Событие выбора сохраненного результата.
+/// {@endtemplate}
+class SavedResultSelected extends DistributionEvent {
+  /// {@macro saved_result_selected}
+  SavedResultSelected(this.savedResult);
+
+  final SavedResult savedResult;
+
+  @override
+  List<Object> get props => [savedResult];
+}
+
+/// {@template save_current_result}
+/// Событие сохранения текущего результата.
+/// {@endtemplate}
+class SaveCurrentResult extends DistributionEvent {
+  /// {@macro save_current_result}
+  SaveCurrentResult(this.name);
+
+  final String name;
+
+  @override
+  List<Object> get props => [name];
 }
 
 class DistributionReset extends DistributionEvent {}
