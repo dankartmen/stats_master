@@ -206,13 +206,14 @@ class ResultsScreen extends StatelessWidget {
       ),
     );
   }
+
   /// Гистограмма для равномерного распределения
-Widget _buildUniformHistogram(UniformParameters parameters, IntervalData? intervalData) {
+  Widget _buildUniformHistogram(UniformParameters parameters, IntervalData? intervalData) {
   if (intervalData == null) {
     return const Center(child: Text('Нет данных для гистограммы'));
   }
 
-  final chartData = _createUniformChartData(intervalData);
+  final chartData = _createUniformChartData(parameters, intervalData);
 
   return Padding(
     padding: const EdgeInsets.all(16.0),
@@ -235,17 +236,21 @@ Widget _buildUniformHistogram(UniformParameters parameters, IntervalData? interv
         Expanded(
           child: BarChart(
             BarChartData(
-              alignment: BarChartAlignment.spaceAround,
-              maxY: _calculateMaxFrequency(intervalData) * 5,
-              barGroups: chartData.map((spot) {
+              alignment: BarChartAlignment.spaceBetween,
+              maxY: 1,
+              groupsSpace: 0,
+              barGroups: chartData.asMap().entries.map((entry) {
+                final index = entry.key;
+                debugPrint('Индекс для таблицы равен ${index}');
+                final spot = entry.value;
                 return BarChartGroupData(
-                  x: spot.x.toInt(),
+                  x: index,
                   barRods: [
                     BarChartRodData(
-                      toY: spot.y * 5,
-                      width: 16,
+                      toY: spot.y,
+                      width: 116,
                       color: Colors.green,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.zero,
                     ),
                   ],
                   showingTooltipIndicators: [0],
@@ -284,8 +289,8 @@ Widget _buildUniformHistogram(UniformParameters parameters, IntervalData? interv
   );
 }
 
-/// Таблица интервального вариационного ряда
-Widget _buildIntervalSeriesTable(IntervalData? intervalData) {
+  /// Таблица интервального вариационного ряда
+  Widget _buildIntervalSeriesTable(IntervalData? intervalData) {
   if (intervalData == null) {
     return const Center(child: Text('Нет данных интервального ряда'));
   }
@@ -347,29 +352,29 @@ Widget _buildIntervalSeriesTable(IntervalData? intervalData) {
   );
 }
 
-/// Создает данные для гистограммы равномерного распределения
-List<FlSpot> _createUniformChartData(IntervalData intervalData) {
+  /// Создает данные для гистограммы равномерного распределения
+  List<FlSpot> _createUniformChartData(UniformParameters parameters, IntervalData intervalData) {
   final spots = <FlSpot>[];
   
   for (final interval in intervalData.intervals) {
-    final relativeFrequency = interval.frequency / generatedResult.sampleSize;
+    final relativeFrequency = interval.frequency / (generatedResult.sampleSize * (parameters.b - parameters.a) / intervalData.numberOfIntervals);
     spots.add(FlSpot(interval.index.toDouble(), relativeFrequency));
   }
   
   return spots;
 }
 
-/// Вычисляет максимальную частоту для шкалы Y
-double _calculateMaxFrequency(IntervalData intervalData) {
-  double maxFreq = 0.0;
-  for (final interval in intervalData.intervals) {
-    final relativeFreq = interval.frequency / generatedResult.sampleSize;
-    if (relativeFreq > maxFreq) {
-      maxFreq = relativeFreq;
+  /// Вычисляет максимальную частоту для шкалы Y
+  double _calculateMaxFrequency(IntervalData intervalData) {
+    double maxFreq = 0.0;
+    for (final interval in intervalData.intervals) {
+      final relativeFreq = interval.frequency / generatedResult.sampleSize;
+      if (relativeFreq > maxFreq) {
+        maxFreq = relativeFreq;
+      }
     }
+    return maxFreq;
   }
-  return maxFreq;
-}
 
   Widget _buildValuesTab() {
     return Padding(
