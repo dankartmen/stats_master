@@ -154,13 +154,12 @@ class ResultsScreen extends StatelessWidget {
     return DefaultTabController(
       length: 3,
       initialIndex: selectedTab,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Результаты биномиального распределения'),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(48),
+      child: Column(
+        children: [
+          Container(
+            color: Theme.of(context).appBarTheme.backgroundColor,
             child: TabBar(
-              onTap: (index) =>  selectedTab = index,
+              onTap: (index) => selectedTab = index,
               tabs: const [
                 Tab(text: 'График'),
                 Tab(text: 'Таблица'),
@@ -168,14 +167,16 @@ class ResultsScreen extends StatelessWidget {
               ],
             ),
           ),
-        ),
-        body: TabBarView(
-                children: [
-                  _buildChartTab(n, p, generatedResult.sampleSize),
-                  _buildTableTab(),
-                  _buildResultsTab(),
-                ],
-              ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _buildChartTab(n, p, generatedResult.sampleSize),
+                _buildTableTab(),
+                _buildResultsTab(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -186,24 +187,29 @@ class ResultsScreen extends StatelessWidget {
 
     return DefaultTabController(
       length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Гистограмма'),
-              Tab(text: 'Интервальный ряд'),
-              Tab(text: 'Значения'),
-            ],
+      child: Column(
+        children: [
+          Container(
+            color: Theme.of(context).appBarTheme.backgroundColor,
+            child: const TabBar(
+              tabs: [
+                Tab(text: 'Гистограмма'),
+                Tab(text: 'Интервальный ряд'),
+                Tab(text: 'Значения'),
+              ],
+            ),
           ),
-        ),
-        body: TabBarView(
-          children: [
-            _buildUniformHistogram(uniformParameters, intervalData),
-            _buildIntervalSeriesTable(intervalData),
-            _buildValuesTab(),
-          ],  
-        ),
-      ),
+          Expanded(
+            child:  TabBarView(
+              children: [
+                _buildUniformHistogram(uniformParameters, intervalData),
+                _buildIntervalSeriesTable(intervalData),
+                _buildValuesTab(),
+              ],  
+            ),
+          ),
+        ],
+      )
     );
   }
 
@@ -237,12 +243,12 @@ class ResultsScreen extends StatelessWidget {
           child: BarChart(
             BarChartData(
               alignment: BarChartAlignment.spaceBetween,
-              maxY: 1,
+              maxY: _calculateMaxY(parameters, intervalData),
               groupsSpace: 0,
               barGroups: chartData.asMap().entries.map((entry) {
                 final index = entry.key;
-                debugPrint('Индекс для таблицы равен ${index}');
                 final spot = entry.value;
+                debugPrint('Y равен ${spot.y}');
                 return BarChartGroupData(
                   x: index,
                   barRods: [
@@ -288,12 +294,22 @@ class ResultsScreen extends StatelessWidget {
     ),
   );
 }
+  double _calculateMaxY(UniformParameters parameters ,IntervalData intervalData) {
+    double maxY = 0;
+    for (final interval in intervalData.intervals) {
+      final relativeFrequency = interval.frequency / (generatedResult.sampleSize * ((parameters.b - parameters.a) / intervalData.numberOfIntervals));
+      if (relativeFrequency > maxY) {
+        maxY = relativeFrequency;
+      }
+    }
+    return maxY * 1.6;
+  }
 
   /// Таблица интервального вариационного ряда
   Widget _buildIntervalSeriesTable(IntervalData? intervalData) {
-  if (intervalData == null) {
-    return const Center(child: Text('Нет данных интервального ряда'));
-  }
+    if (intervalData == null) {
+      return const Center(child: Text('Нет данных интервального ряда'));
+    }
 
   return Padding(
     padding: const EdgeInsets.all(16.0),
