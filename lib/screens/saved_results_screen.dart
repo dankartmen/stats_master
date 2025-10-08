@@ -176,6 +176,7 @@ class _SavedResultCard extends StatelessWidget {
     return switch (type) {
       DistributionType.binomial => Colors.blue,
       DistributionType.uniform => Colors.green,
+      DistributionType.normal => Colors.blue,
     };
   }
 
@@ -183,6 +184,7 @@ class _SavedResultCard extends StatelessWidget {
     return switch (type) {
       DistributionType.binomial => Icons.bar_chart,
       DistributionType.uniform => Icons.show_chart,
+      DistributionType.normal => Icons.show_chart,
     };
   }
 

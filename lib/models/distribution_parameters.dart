@@ -53,3 +53,23 @@ class UniformParameters extends DistributionParameters {
   @override
   List<Object?> get props => [type,a,b];
 }
+
+/// {@template uniform_parameters}
+/// Параметры нормального распределения.
+/// {@endtemplate}
+class NormalParameters extends DistributionParameters {
+  /// {@macro uniform_parameters}
+  const NormalParameters({
+    required this.m,
+    required this.sigma,
+  }) : super(type: DistributionType.uniform);
+
+  /// Математическое ожидание
+  final double m;
+
+  /// Стандартное отклонение
+  final double sigma;
+
+  @override
+  List<Object?> get props => [type,m,sigma];
+}

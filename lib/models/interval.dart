@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../models/generation_result.dart';
+
 /// {@template interval}
 /// Интервал вариационного ряда.
 /// {@endtemplate}
@@ -101,14 +101,13 @@ class IntervalData with EquatableMixin {
     );
   }
 
-  // ... (существующий код класса IntervalData)
 
-/// Преобразует Map<int, int> в JSON-совместимый формат
+/// Преобразует Map int, int в JSON-совместимый формат
 static Map<String, int> _mapIntIntToJson(Map<int, int> map) {
   return map.map((key, value) => MapEntry(key.toString(), value));
 }
 
-/// Восстанавливает Map<int, int> из JSON
+/// Восстанавливает Map int, int из JSON
 static Map<int, int> _mapIntIntFromJson(Map<dynamic, dynamic> jsonMap) {
   final result = <int, int>{};
   

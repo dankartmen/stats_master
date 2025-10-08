@@ -1,10 +1,12 @@
+import 'package:stats_master/services/generators/normal_generator.dart';
+
 import '../models/distribution_parameters.dart';
 import '../models/distribution_type.dart';
 import '../models/generation_result.dart';
 import '../services/generators/binomial_generator.dart';
 import '../services/generators/distribution_generator.dart';
 import '../services/generators/uniform_generator.dart';
-//import '../services/generators/uniform_generator.dart';
+import '../services/generators/normal_generator.dart';
 
 /// {@template distribution_repository}
 /// Репозиторий для работы с генерацией распределений.
@@ -16,6 +18,7 @@ class DistributionRepository {
       : _generators = {
           DistributionType.binomial: BinomialGenerator(),
           DistributionType.uniform: UniformGenerator(),
+          DistributionType.normal: NormalGenerator(),
         };
 
   /// Генерирует значения распределения.

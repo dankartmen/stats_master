@@ -223,6 +223,7 @@ class _DistributionCard extends StatelessWidget {
     return switch (type) {
       DistributionType.binomial => const BinomialParameters(n: 10, p: 0.5),
       DistributionType.uniform => const UniformParameters(a: 0.0, b: 1.0),
+      DistributionType.normal => const NormalParameters(m: 0, sigma: 1)
     };
   }
 }

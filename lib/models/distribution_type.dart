@@ -9,6 +9,9 @@ enum DistributionType {
 
   /// Непрерывное равномерное распределение
   uniform,
+
+  /// Непрерывное нормальное распределение
+  normal
 }
 
 /// {@template distribution_category}

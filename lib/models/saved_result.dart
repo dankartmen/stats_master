@@ -36,6 +36,7 @@ class SavedResult with EquatableMixin {
     return switch (params) {
       BinomialParameters p => 'Биномиальное: n=${p.n}, p=${p.p.toStringAsFixed(2)}',
       UniformParameters p => 'Равномерное: [${p.a.toStringAsFixed(2)}, ${p.b.toStringAsFixed(2)}]',
+      NormalParameters p => 'Нормальное: [${p.m.toStringAsFixed(2)}, ${p.sigma.toStringAsFixed(2)}]',
       _ => 'Неизвестное распределение',
     };
   }

@@ -294,6 +294,7 @@ class ResultsScreen extends StatelessWidget {
     ),
   );
 }
+  // Нахождение maxY для графика
   double _calculateMaxY(UniformParameters parameters ,IntervalData intervalData) {
     double maxY = 0;
     for (final interval in intervalData.intervals) {
@@ -379,18 +380,6 @@ class ResultsScreen extends StatelessWidget {
   
   return spots;
 }
-
-  /// Вычисляет максимальную частоту для шкалы Y
-  double _calculateMaxFrequency(IntervalData intervalData) {
-    double maxFreq = 0.0;
-    for (final interval in intervalData.intervals) {
-      final relativeFreq = interval.frequency / generatedResult.sampleSize;
-      if (relativeFreq > maxFreq) {
-        maxFreq = relativeFreq;
-      }
-    }
-    return maxFreq;
-  }
 
   Widget _buildValuesTab() {
     return Padding(
