@@ -62,7 +62,7 @@ class NormalParameters extends DistributionParameters {
   const NormalParameters({
     required this.m,
     required this.sigma,
-  }) : super(type: DistributionType.uniform);
+  }) : super(type: DistributionType.normal);
 
   /// Математическое ожидание
   final double m;

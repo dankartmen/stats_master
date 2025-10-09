@@ -1,5 +1,3 @@
-import 'package:stats_master/services/generators/normal_generator.dart';
-
 import '../models/distribution_parameters.dart';
 import '../models/distribution_type.dart';
 import '../models/generation_result.dart';

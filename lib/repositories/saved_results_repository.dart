@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:stats_master/models/interval.dart';
 import '../models/distribution_parameters.dart';
 import '../models/generated_value.dart';
 import '../models/generation_result.dart';
@@ -139,8 +140,7 @@ extension SavedResultJson on SavedResult {
       results: (json['values'] as List).map((v) => GeneratedValue.fromJson(v)).toList(),
       parameters: _parametersFromJson(json['parameters']),
       sampleSize: json['sampleSize'] as int,
-      frequencyDict: _mapIntIntFromJson(json['frequencyDict']),
-      cumulativeProbabilities: List<double>.from(json['cumulativeProbabilities']),
+      intervalData: json['intervalData'] as IntervalData,
       additionalInfo: Map<String, dynamic>.from(json['additionalInfo']),
     );
   }
@@ -157,6 +157,11 @@ extension SavedResultJson on SavedResult {
           'a': p.a,
           'b': p.b,
         },
+      NormalParameters p => {  // Добавьте этот case
+        'type': 'normal',
+        'm': p.m,
+        'sigma': p.sigma,
+      },
       _ => throw Exception('Неизвестный тип параметров'),
     };
   }
@@ -172,6 +177,10 @@ extension SavedResultJson on SavedResult {
           a: json['a'] as double,
           b: json['b'] as double,
         ),
+      'normal' => NormalParameters(  // Добавьте этот case
+        m: json['m'] as double,
+        sigma: json['sigma'] as double,
+      ),
       _ => throw Exception('Неизвестный тип параметров: $type'),
     };
   }

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/widgets.dart';
 
 import 'distribution_parameters.dart';
 import 'generated_value.dart';
@@ -13,8 +14,7 @@ class GenerationResult with EquatableMixin {
     required this.results,
     required this.parameters,
     required this.sampleSize,
-    required this.frequencyDict,
-    required this.cumulativeProbabilities,
+    this.intervalData,
     this.additionalInfo = const {}
   });
 
@@ -27,41 +27,28 @@ class GenerationResult with EquatableMixin {
   /// Размер выборки
   final int sampleSize;
 
-  /// Словарь частот {значение: количество}
-  final Map<int, int> frequencyDict;
 
-  /// Кумулятивные вероятности [a_0, a_1, ..., a_n]
-  final List<double> cumulativeProbabilities;
+  final IntervalData? intervalData;
 
   /// Дополнительная информация
   final additionalInfo;
 
-  /// Получает данные интервалов (для равномерного распределения)
-  IntervalData? get intervalData {
-    if (additionalInfo.containsKey('intervalData')) {
-      final intervalDataJson = additionalInfo['intervalData'];
-      if (intervalDataJson is Map<String, dynamic>) {
-        return IntervalData.fromJson(intervalDataJson);
-      }
+  /// Для обратной совместимости - геттеры
+  Map<int, int> get frequencyDict {
+    if (intervalData != null) {
+      return intervalData!.frequencyDict;
     }
-    return null;
+    // Для биномиального распределения вычисляем на лету
+    final dict = <int, int>{};
+    for (final value in results) {
+      final key = value.value.toInt();
+      dict[key] = (dict[key] ?? 0) + 1;
+    }
+    return dict;
   }
 
-  /// Количество интервалов
-  int? get numberOfIntervals {
-    if (additionalInfo.containsKey('numberOfIntervals')) {
-      return additionalInfo['numberOfIntervals'] as int;
-    }
-    return null;
-  }
+  List<double>? get cumulativeProbabilities => intervalData?.cumulativeProbabilities;
 
-  /// Ширина интервала
-  double? get intervalWidth {
-    if (additionalInfo.containsKey('intervalWidth')) {
-      return additionalInfo['intervalWidth'] as double;
-    }
-    return null;
-  }
   
   /// Преобразует в JSON
   Map<String, dynamic> toJson() {
@@ -83,8 +70,7 @@ class GenerationResult with EquatableMixin {
           .toList(),
       parameters: _parametersFromJson(json['parameters'] as Map<String, dynamic>),
       sampleSize: json['sampleSize'] as int,
-      frequencyDict: mapIntIntFromJson(json['frequencyDict'] as Map),
-      cumulativeProbabilities: List<double>.from(json['cumulativeProbabilities'] as List),
+      intervalData: IntervalData.fromJson(json),
       additionalInfo: Map<String, dynamic>.from(json['additionalInfo'] as Map),
     );
   }
@@ -104,7 +90,7 @@ class GenerationResult with EquatableMixin {
         cleanInfo[entry.key] = value;
       } else {
         // Пропускаем сложные объекты
-        print('Пропущен несериализуемый объект: ${entry.key}');
+        debugPrint('Пропущен несериализуемый объект: ${entry.key}');
       }
     }
     
@@ -144,6 +130,11 @@ class GenerationResult with EquatableMixin {
           'a': p.a,
           'b': p.b,
         },
+      NormalParameters p => {  
+        'type': 'normal',
+        'm': p.m,
+        'sigma': p.sigma,
+      },
       _ => throw Exception('Неизвестный тип параметров'),
     };
   }
@@ -159,11 +150,15 @@ class GenerationResult with EquatableMixin {
           a: (json['a'] as num).toDouble(),
           b: (json['b'] as num).toDouble(),
         ),
+      'normal' => NormalParameters(  
+        m: (json['m'] as num).toDouble(),
+        sigma: (json['sigma'] as num).toDouble(),
+      ),
       _ => throw Exception('Неизвестный тип параметров: $type'),
     };
   }
 
 
   @override
-  List<Object> get props => [results, parameters, sampleSize, frequencyDict, cumulativeProbabilities, additionalInfo];
+  List<Object?> get props => [results, parameters, sampleSize, frequencyDict, cumulativeProbabilities, additionalInfo];
 }

@@ -161,6 +161,7 @@ Widget _buildSpecificParameterInputs(DistributionParameters parameters) {
     return switch (parameters) {
       BinomialParameters p => _buildBinomialParameters(p),
       UniformParameters p => _buildUniformParameters(p),
+      NormalParameters p => _buildNormalParameters(p),
       _ => const Text('Неизвестный тип параметров'),
     };
   }
@@ -244,6 +245,47 @@ Widget _buildSpecificParameterInputs(DistributionParameters parameters) {
                 _currentParameters = UniformParameters(
                   a: parameters.a,
                   b: b,
+                );
+              });
+              _dispatchParametersChange();
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNormalParameters(NormalParameters parameters) {
+    return Column(
+      children: [
+        TextFormField(
+          initialValue: parameters.m.toString(),
+          decoration: const InputDecoration(labelText: 'Среднее значение (m)'),
+          keyboardType: TextInputType.number,
+          onChanged: (value) {
+            final m = double.tryParse(value);
+            if (m != null) {
+              setState(() {
+                _currentParameters = NormalParameters(
+                  m: m,
+                  sigma: parameters.sigma,
+                );
+              });
+              _dispatchParametersChange();
+            }
+          },
+        ),
+        TextFormField(
+          initialValue: parameters.sigma.toString(),
+          decoration: const InputDecoration(labelText: 'Стандартное отклонение σ'),
+          keyboardType: TextInputType.number,
+          onChanged: (value) {
+            final sigma = double.tryParse(value);
+            if (sigma != null) {
+              setState(() {
+                _currentParameters = NormalParameters(
+                  m: parameters.m,
+                  sigma: sigma,
                 );
               });
               _dispatchParametersChange();

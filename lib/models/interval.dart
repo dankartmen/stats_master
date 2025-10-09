@@ -66,14 +66,14 @@ class IntervalData with EquatableMixin {
   const IntervalData({
     required this.intervals,
     required this.frequencyDict,
-    required this.cumulativeProbabilities,
+    this.cumulativeProbabilities,
     required this.numberOfIntervals,
     required this.intervalWidth,
   });
 
   final List<Interval> intervals;
   final Map<int, int> frequencyDict;
-  final List<double> cumulativeProbabilities;
+  final List<double>? cumulativeProbabilities;
   final int numberOfIntervals;
   final double intervalWidth;
 
@@ -95,7 +95,9 @@ class IntervalData with EquatableMixin {
           .map((i) => Interval.fromJson(i as Map<String, dynamic>))
           .toList(),
       frequencyDict: _mapIntIntFromJson(json['frequencyDict'] as Map),
-      cumulativeProbabilities: List<double>.from(json['cumulativeProbabilities'] as List),
+      cumulativeProbabilities: json['cumulativeProbabilities'] != null 
+          ? List<double>.from(json['cumulativeProbabilities'] as List)
+          : null,
       numberOfIntervals: json['numberOfIntervals'] as int,
       intervalWidth: (json['intervalWidth'] as num).toDouble(),
     );
@@ -124,7 +126,7 @@ static Map<int, int> _mapIntIntFromJson(Map<dynamic, dynamic> jsonMap) {
 }
 
   @override
-  List<Object> get props => [
+  List<Object?> get props => [
         intervals,
         frequencyDict,
         cumulativeProbabilities,

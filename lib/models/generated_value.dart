@@ -12,11 +12,11 @@ class GeneratedValue with EquatableMixin {
   });
 
   final num value;
-  final double randomU;
+  final double? randomU;
   final Map<String, dynamic> additionalInfo;
 
   @override
-  List<Object> get props => [value, randomU];
+  List<Object?> get props => [value, randomU];
 
   /// Преобразует в JSON
   Map<String, dynamic> toJson() {

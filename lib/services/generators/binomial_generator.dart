@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/distribution_parameters.dart';
 import '../../models/generated_value.dart';
 import '../../models/generation_result.dart';
+import '../../models/interval.dart';
 import 'distribution_generator.dart';
 
 /// {@template binomial_generator}
@@ -39,12 +40,19 @@ class BinomialGenerator implements DistributionGenerator{
       ));
       frequencyDict[value] = frequencyDict[value]! + 1;
     }
+
+    final intervalData = IntervalData(
+      intervals: [],
+      frequencyDict: frequencyDict,
+      cumulativeProbabilities: cumulativeProbabilities,
+      numberOfIntervals: n + 1, // n+1 возможных значений (0 до n)
+      intervalWidth: 1.0,
+    );
     return GenerationResult(
       results: results,
       parameters: parameters,
       sampleSize: sampleSize,
-      frequencyDict: frequencyDict,
-      cumulativeProbabilities: cumulativeProbabilities,
+      intervalData: intervalData
     );
   }
 

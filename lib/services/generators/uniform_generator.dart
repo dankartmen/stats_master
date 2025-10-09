@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import '../../models/distribution_parameters.dart';
 import '../../models/generated_value.dart';
 import '../../models/generation_result.dart';
@@ -19,7 +18,6 @@ class UniformGenerator implements DistributionGenerator{
     final b = parameters.b;
     final random = Random();
     final results = <GeneratedValue>[];
-    final frequencyDict = <int, int>{};
 
     // Стандартный метод: F(x) = y, где F(x) - функция распределения
     // Для равномерного распределения: F(x) = (x - a) / (b - a)
@@ -49,13 +47,7 @@ class UniformGenerator implements DistributionGenerator{
       results: results,
       parameters: parameters,
       sampleSize: sampleSize,
-      frequencyDict: intervalData.frequencyDict,
-      cumulativeProbabilities: intervalData.cumulativeProbabilities,
-      additionalInfo: {
-        'intervalData': intervalData.toJson(),
-        'numberOfIntervals': intervalData.numberOfIntervals,
-        'intervalWidth':intervalData.intervalWidth
-      }
+      intervalData: intervalData
     );
   }
 
@@ -93,16 +85,10 @@ class UniformGenerator implements DistributionGenerator{
       );
     }
 
-    final cumulativeProbabilities = _calculateCumulativeProhababilities(
-      intervals,
-      sampleSize,
-      numberOfIntervals
-    );
-
     return IntervalData(
       intervals: intervals,
       frequencyDict: frequencyDict, 
-      cumulativeProbabilities: cumulativeProbabilities, 
+      cumulativeProbabilities: null, 
       numberOfIntervals: numberOfIntervals, 
       intervalWidth: intervalWidth
     );
@@ -125,24 +111,6 @@ class UniformGenerator implements DistributionGenerator{
     return intervals.length - 1;
   }
 
-  List<double> _calculateCumulativeProhababilities(
-    List<Interval> intervals, 
-    int sampleSize, 
-    int numberOfIntervals
-  ){
-    final cumulative = List<double>.filled(numberOfIntervals, 0.0);
-    double runningTotal = 0.0;
-
-    for(int i = 0; i < intervals.length; i++){
-      final relativeFrequency = intervals[i].frequency / sampleSize;
-      runningTotal += relativeFrequency;
-      cumulative[i] = runningTotal;
-    }
-    // Гарантируем, что последнее значение равно 1.0
-    if (cumulative.isNotEmpty) {
-      cumulative[cumulative.length - 1] = 1.0;
-    }
-    return cumulative;
-  }
+  
 }
 

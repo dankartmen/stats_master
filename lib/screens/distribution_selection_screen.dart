@@ -86,7 +86,7 @@ Widget? _DistributionSelectionContent(){
 
 Widget _buildDistributionGrid() {
   return GridView.count(
-    crossAxisCount: 2,
+    crossAxisCount: 3,
     crossAxisSpacing: 16,
     mainAxisSpacing: 16,
     childAspectRatio: 1.2,
@@ -113,7 +113,17 @@ Widget _buildDistributionGrid() {
           colors: [Colors.green.shade400, Colors.green.shade600],
         ),
       ),
-
+      _DistributionCard(
+        type: DistributionType.normal,
+        title: 'Нормальное',
+        subtitle: 'Непрерывное',
+        description: 'Среднее значение m, стандартное отклонение σ',
+        icon: Icons.show_chart,
+        color: Colors.blue,
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade400, Colors.blue.shade600],
+        ),
+      )
     ],
   );
 }
