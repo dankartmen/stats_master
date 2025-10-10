@@ -11,8 +11,13 @@ class GeneratedValue with EquatableMixin {
     required this.additionalInfo,
   });
 
+  /// Значение
   final num value;
+  
+  /// Рандомное число от 0 до 1, из которого получилось значение 
   final double? randomU;
+
+  /// Дополнительная информация
   final Map<String, dynamic> additionalInfo;
 
   @override

@@ -27,7 +27,7 @@ class GenerationResult with EquatableMixin {
   /// Размер выборки
   final int sampleSize;
 
-
+  /// Данные интервального вариационного ряда
   final IntervalData? intervalData;
 
   /// Дополнительная информация

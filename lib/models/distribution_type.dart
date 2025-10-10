@@ -23,7 +23,7 @@ enum DistributionCategory {
 }
 
 /// {@template distribution_info}
-/// Метаинформация о распределении.
+/// Информация о распределении.
 /// {@endtemplate}
 class DistributionInfo with EquatableMixin{
 

@@ -12,9 +12,16 @@ class Interval with EquatableMixin {
     required this.frequency,
   });
 
+  /// Индекс интервала
   final int index;
+
+  /// Начало интервала
   final double start;
+
+  /// Конец интервала
   final double end;
+
+  /// Частота(кол-во значений попавших в этот интервал)
   final int frequency;
 
   /// Середина интервала
