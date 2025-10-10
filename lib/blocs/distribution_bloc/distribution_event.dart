@@ -13,9 +13,10 @@ abstract class DistributionEvent with EquatableMixin{
 /// Событие выбора распределения.
 /// {@endtemplate}
 class DistributionTypeSelect extends DistributionEvent{
-
+  /// Выбранный тип распределения.
   final String distributionType;
 
+  /// {@macro distribution_type_select}
   DistributionTypeSelect(this.distributionType);
 
   @override
@@ -26,8 +27,10 @@ class DistributionTypeSelect extends DistributionEvent{
 /// Событие изменения параметров распределения.
 /// {@endtemplate}
 class DistributionParametersChanged extends DistributionEvent{
+  /// Новые параметры распределения.
   final DistributionParameters parameters;
   
+  /// {@macro distribution_parameters_changed}
   DistributionParametersChanged(this.parameters);
 
   @override
@@ -41,6 +44,7 @@ class DistributionGenerateRequest extends DistributionEvent{
 
   final int sampleSize;
 
+  /// {@macro distribution_generate_request}
   DistributionGenerateRequest(this.sampleSize);
 
   @override

@@ -13,32 +13,34 @@ abstract class DistributionState with EquatableMixin {
 }
 
 /// {@template distribution_initial}
-/// Начальное состояние.
+/// Начальное состояние DistributionBloc.
 /// {@endtemplate}
 class DistributionInitial extends DistributionState {
   const DistributionInitial();
 }
 
 /// {@template distribution_load_in_progress}
-/// Состояние загрузки.
+/// Состояние загрузки данных распределения.
 /// {@endtemplate}
 class DistributionLoadInProgress extends DistributionState {
   const DistributionLoadInProgress();
 }
 
 /// {@template distribution_selection}
-/// Состояние выбора распределения.
+/// Состояние выбора типа распределения.
 /// {@endtemplate}
 class DistributionSelection extends DistributionState {
   const DistributionSelection();
 }
 
 /// {@template distribution_parameters_input}
-/// Состояние ввода параметров.
+/// Состояние ввода параметров распределения.
 /// {@endtemplate}
 class DistributionParametersInput extends DistributionState{
+  /// Параметры распределения для ввода.
   final DistributionParameters parameters;
 
+  /// {@macro distribution_parameters_input}
   const DistributionParametersInput({required this.parameters});
 
   @override
@@ -46,28 +48,27 @@ class DistributionParametersInput extends DistributionState{
 }
 
 /// {@template distribution_generation_success}
-/// Состояние успешной генерации.
+/// Состояние успешной генерации значений распределения.
 /// {@endtemplate}
 class DistributionGenerationSuccess extends DistributionState {
+  /// Результат генерации значений.
   final GenerationResult generatedResult;
 
-  const DistributionGenerationSuccess(
-    {
-      required this.generatedResult,
-      
-    }
-  );
+  /// {@macro distribution_generation_success}
+  const DistributionGenerationSuccess({ required this.generatedResult});
 
   @override
   List<Object> get props => [generatedResult];
 }
 
-/// {@template distribution_generation_success}
+/// {@template distribution_error_state}
 /// Состояние ошибки.
 /// {@endtemplate}
 class DistributionErrorState extends DistributionState{
+  /// Текст ошибки.
   final String error;
-
+  
+  /// {@macro distribution_error_state}
   const DistributionErrorState(this.error);
 
   @override
