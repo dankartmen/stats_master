@@ -57,7 +57,7 @@ class NormalGenerator implements DistributionGenerator{
     List<GeneratedValue> values,
     int sampleSize
   ){
-    final numberOfIntervals = 10;// _calculateNumberOfIntevals(sampleSize);
+    final numberOfIntervals = 13;// _calculateNumberOfIntevals(sampleSize);
 
     // Делим отрезок (-6, 6) на N одинаковых частей
     final intervalWidth = (12) / numberOfIntervals;

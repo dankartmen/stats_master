@@ -8,42 +8,58 @@ import '../models/generation_result.dart';
 import '../models/saved_result.dart';
 
 /// {@template saved_results_repository}
-/// Репозиторий для работы с сохраненными результатами.
+/// Репозиторий для работы с сохраненными результатами генерации.
+/// Нужен для сохранения, загрузки, удаления и управления результатами
+/// в локальном хранилище.
 /// {@endtemplate}
 class SavedResultsRepository {
+  /// Имя файла для хранения сохраненных результатов.
   static const String _fileName = 'saved_results.json';
 
   /// {@macro saved_results_repository}
   SavedResultsRepository();
 
-  /// Сохраняет результат генерации.
+  /// Принимает:
+  /// - [result] - сохраняемый результат генерации
+  /// В случае ошибки выбрасывает исключение.
   Future<void> saveResult(SavedResult result) async {
     final savedResults = await _loadAllResults();
     savedResults[result.id] = result;
     await _saveAllResults(savedResults);
   }
 
-  /// Загружает все сохраненные результаты.
+  /// Загружает все сохраненные результаты из локального хранилища.
+  /// Возвращает:
+  /// - [List<SavedResult>] - список сохраненных результатов, отсортированных по дате создания (новые первыми)
   Future<List<SavedResult>> loadAllResults() async {
     final results = await _loadAllResults();
     return results.values.toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
-  /// Удаляет сохраненный результат.
+  /// Удаляет сохраненный результат по идентификатору.
+  /// Принимает:
+  /// - [id] - идентификатор удаляемого результата
   Future<void> deleteResult(String id) async {
     final savedResults = await _loadAllResults();
     savedResults.remove(id);
     await _saveAllResults(savedResults);
   }
 
-  /// Загружает конкретный результат по ID.
+  /// Загружает конкретный результат по идентификатору.
+  /// Принимает:
+  /// - [id] - идентификатор загружаемого результата
+  /// Возвращает:
+  /// - [SavedResult?] - найденный результат или null, если результат не найден
   Future<SavedResult?> loadResult(String id) async {
     final savedResults = await _loadAllResults();
     return savedResults[id];
   }
 
-  /// Загружает все результаты из файла.
+  /// Загружает все результаты из файла хранилища.
+  /// Возвращает:
+  /// - [Map<String, SavedResult>]
+  ///  В случае ошибки возвращает пустой словарь.
   Future<Map<String, SavedResult>> _loadAllResults() async {
     try {
       final file = await _getFile();
@@ -63,7 +79,10 @@ class SavedResultsRepository {
     }
   }
 
-  /// Сохраняет все результаты в файл.
+  /// Сохраняет все результаты в файл хранилища.
+  /// Принимает:
+  /// - [results] - словарь результатов для сохранения
+  /// В случае ошибки выбрасывает исключение.
   Future<void> _saveAllResults(Map<String, SavedResult> results) async {
     try {
       final file = await _getFile();
@@ -75,7 +94,9 @@ class SavedResultsRepository {
     }
   }
 
-  /// Получает файл для сохранения.
+  /// Получает файл для сохранения результатов.
+  /// Возвращает:
+  /// - [File] - файл в директории документов приложения
   Future<File> _getFile() async {
     final directory = await getApplicationDocumentsDirectory();
     return File('${directory.path}/$_fileName');
@@ -83,12 +104,25 @@ class SavedResultsRepository {
 }
 
   
-/// Расширения для преобразования в JSON
+/// {@template saved_result_json}
+/// Расширение для преобразования SavedResult в JSON и обратно.
+/// {@endtemplate}
 extension SavedResultJson on SavedResult {
+
+  /// Преобразует словарь Map<int, int> в JSON-совместимый формат.
+  /// Принимает:
+  /// - [map] - исходный словарь для преобразования
+  /// Возвращает:
+  /// - [Map<String, int>] - преобразованный словарь
   static Map<String, int> _mapIntIntToJson(Map<int, int> map) {
     return map.map((key, value) => MapEntry(key.toString(), value));
   }
 
+  /// Восстанавливает словарь Map<int, int> из JSON-формата.
+  /// Принимает:
+  /// - [jsonMap] - JSON-словарь для преобразования
+  /// Возвращает:
+  /// - [Map<int, int>] - восстановленный словарь
   static Map<int, int> _mapIntIntFromJson(Map<dynamic, dynamic> jsonMap) {
     final result = <int, int>{};
     
@@ -104,7 +138,9 @@ extension SavedResultJson on SavedResult {
     return result;
   }
 
-  /// Преобразует в JSON
+  /// Преобразует SavedResult в JSON-формат.
+  /// Возвращает:
+  /// - [Map<String, dynamic>] - JSON-представление сохраненного результата
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -114,7 +150,11 @@ extension SavedResultJson on SavedResult {
     };
   }
 
-  /// Создает из JSON
+  /// Создает SavedResult из JSON-формата.
+  /// Принимает:
+  /// - [json] - JSON-данные для преобразования
+  /// Возвращает:
+  /// - [SavedResult] - восстановленный сохраненный результат
   static SavedResult fromJson(Map<String, dynamic> json) {
     return SavedResult(
       id: json['id'] as String,
@@ -124,6 +164,11 @@ extension SavedResultJson on SavedResult {
     );
   }
 
+  /// Преобразует GenerationResult в JSON-формат.
+  /// Принимает:
+  /// - [result] - результат генерации для преобразования
+  /// Возвращает:
+  /// - [Map<String, dynamic>] - JSON-представление результата генерации
   static Map<String, dynamic> _generationResultToJson(GenerationResult result) {
     return {
       'values': result.results.map((v) => v.toJson()).toList(),
@@ -135,6 +180,11 @@ extension SavedResultJson on SavedResult {
     };
   }
 
+  /// Восстанавливает GenerationResult из JSON-формата.
+  /// Принимает:
+  /// - [json] - JSON-данные результата генерации
+  /// Возвращает:
+  /// - [GenerationResult] - восстановленный результат генерации
   static GenerationResult _generationResultFromJson(Map<String, dynamic> json) {
     return GenerationResult(
       results: (json['values'] as List).map((v) => GeneratedValue.fromJson(v)).toList(),
@@ -145,6 +195,12 @@ extension SavedResultJson on SavedResult {
     );
   }
 
+  /// Преобразует DistributionParameters в JSON-формат.
+  /// Принимает:
+  /// - [parameters] - параметры распределения для преобразования
+  /// Возвращает:
+  /// - [Map<String, dynamic>] - JSON-представление параметров
+  /// В случае неизвестного типа параметров выбрасывает исключение.
   static Map<String, dynamic> _parametersToJson(DistributionParameters parameters) {
     return switch (parameters) {
       BinomialParameters p => {
@@ -166,6 +222,12 @@ extension SavedResultJson on SavedResult {
     };
   }
 
+  /// Восстанавливает DistributionParameters из JSON-формата.
+  /// Принимает:
+  /// - [json] - JSON-данные параметров распределения
+  /// Возвращает:
+  /// - [DistributionParameters] - восстановленные параметры распределения
+  /// В случае неизвестного типа параметров выбрасывает исключение.
   static DistributionParameters _parametersFromJson(Map<String, dynamic> json) {
     final type = json['type'] as String;
     return switch (type) {
@@ -186,8 +248,15 @@ extension SavedResultJson on SavedResult {
   }
 }
 
-/// Расширения для GeneratedValue
+
+/// {@template generated_value_json}
+/// Расширение для преобразования GeneratedValue в JSON и обратно.
+/// {@endtemplate}
 extension GeneratedValueJson on GeneratedValue {
+
+  /// Преобразует GeneratedValue в JSON-формат.
+  /// Возвращает:
+  /// - [Map<String, dynamic>] - JSON-представление сгенерированного значения
   Map<String, dynamic> toJson() {
     return {
       'value': value,
@@ -196,6 +265,11 @@ extension GeneratedValueJson on GeneratedValue {
     };
   }
 
+  /// Создает GeneratedValue из JSON-формата.
+  /// Принимает:
+  /// - [json] - JSON-данные для преобразования
+  /// Возвращает:
+  /// - [GeneratedValue] - восстановленное сгенерированное значение
   static GeneratedValue fromJson(Map<String, dynamic> json) {
     return GeneratedValue(
       value: json['value'] as double,
