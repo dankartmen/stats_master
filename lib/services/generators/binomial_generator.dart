@@ -10,10 +10,15 @@ import 'distribution_generator.dart';
 
 /// {@template binomial_generator}
 /// Генератор биномиального распределения.
+/// Генерация случайных величин, распределенных по биномиальному закону
+/// с использованием метода обратного преобразования и бинарного поиска.
 /// {@endtemplate}
 class BinomialGenerator implements DistributionGenerator{
   @override
-  GenerationResult generateResults({required DistributionParameters parameters, required int sampleSize,}){
+  GenerationResult generateResults({
+    required DistributionParameters parameters,
+    required int sampleSize,
+  }){
     if (parameters is! BinomialParameters){
       throw ArgumentError('Ожидаются параметры биноминального распределения');
     }
@@ -57,6 +62,12 @@ class BinomialGenerator implements DistributionGenerator{
     );
   }
 
+  /// Находит значение в массиве кумулятивных вероятностей с помощью бинарного поиска.
+  /// Принимает:
+  /// - [u] - случайное число от 0 до 1
+  /// - [cumulativeProbabilities] - массив кумулятивных вероятностей
+  /// Возвращает:
+  /// - [int] - найденное значение распределения
   int _findValueInCumulative(double u, List<double> cumulativeProbabilities){
     int left = 0;
     int right = cumulativeProbabilities.length - 1;
@@ -79,7 +90,7 @@ class BinomialGenerator implements DistributionGenerator{
   /// - [n] - общее количество элементов
   /// - [m] - количество выбираемых элементов
   /// Возвращает:
-  /// - биномиальный коэффициент C(n, m)
+  /// - [int] - биномиальный коэффициент C(n, m)
   /// При невалидных параметрах возвращает 0
   int _binomialCoefficient(int n, int m) {
     if (m < 0 || m > n) return 0;
@@ -103,7 +114,7 @@ class BinomialGenerator implements DistributionGenerator{
   /// - [p] - вероятность успеха в одном испытании
   /// - [m] - количество успехов
   /// Возвращает:
-  /// - вероятность P(ξ = m)
+  /// - [double] - вероятность P(ξ = m)
   /// При граничных условиях (p=0 или p=1) возвращает соответствующие значения
   double _binomialProbability(int n, double p, int m) {
     if (m < 0 || m > n) return 0.0;
@@ -123,7 +134,7 @@ class BinomialGenerator implements DistributionGenerator{
   /// - [n] - количество испытаний
   /// - [p] - вероятность успеха
   /// Возвращает:
-  /// - массив кумулятивных вероятностей длиной n+1
+  /// - [List<double>] массив кумулятивных вероятностей длиной n+1
   List<double> _createCumulativeProbabilities(int n, double p) {
     final probabilities = List<double>.generate(n + 1, (m) => _binomialProbability(n, p, m));
     

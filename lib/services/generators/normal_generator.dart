@@ -8,6 +8,8 @@ import 'distribution_generator.dart';
 
 /// {@template binomial_generator}
 /// Генератор биномиального распределения.
+/// Генерация случайных величин, распределенных по нормальному закону
+/// с использованием метода центральной предельной теоремы (сумма 12 равномерных величин).
 /// {@endtemplate}
 class NormalGenerator implements DistributionGenerator{
   @override
@@ -53,7 +55,12 @@ class NormalGenerator implements DistributionGenerator{
     );
   }
 
-  // Данные интервального вариационного ряда
+  /// Строит интервальный вариационный ряд для нормального распределения.
+  /// Принимает:
+  /// - [values] - сгенерированные значения
+  /// - [sampleSize] - размер выборки
+  /// Возвращает:
+  /// - [IntervalData] - данные интервального вариационного ряда
   IntervalData _buildIntervalVariationSeries(
     List<GeneratedValue> values,
     int sampleSize
@@ -93,7 +100,13 @@ class NormalGenerator implements DistributionGenerator{
     );
 
   }
-  /// Находит индекс интервала для значения
+
+  /// Находит индекс интервала для значения.
+  /// Принимает:
+  /// - [value] - значение для поиска
+  /// - [intervals] - список интервалов
+  /// Возвращает:
+  /// - [int] - индекс интервала, содержащего значение
   int _findIntervalIndex(double value, List<Interval> intervals){
     for (int i = 0; i < intervals.length; i++){
       if (value >= intervals[i].start && value <= intervals[i].end){

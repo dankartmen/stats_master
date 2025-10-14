@@ -5,6 +5,15 @@ import '../../models/generation_result.dart';
 /// Абстрактный генератор распределений.
 /// {@endtemplate}
 abstract class DistributionGenerator {
-  /// Генерируем значения распределения
-  GenerationResult generateResults({required DistributionParameters parameters, required int sampleSize});
+  /// Генерирует значения распределения на основе переданных параметров.
+  /// Принимает:
+  /// - [parameters] - параметры распределения для генерации
+  /// - [sampleSize] - размер выборки для генерации
+  /// Возвращает:
+  /// - [GenerationResult] - результат генерации значений
+  /// В случае несоответствия типа параметров выбрасывает ArgumentError.
+  GenerationResult generateResults({
+    required DistributionParameters parameters,
+    required int sampleSize
+  });
 }

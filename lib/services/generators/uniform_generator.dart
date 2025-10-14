@@ -7,6 +7,8 @@ import 'distribution_generator.dart';
 
 /// {@template uniform_generator}
 /// Генератор равномерного распределения
+/// Генерация случайных величин, равномерно распределенных на интервале [a, b]
+/// с использованием метода обратного преобразования.
 /// {@endtemplate}
 class UniformGenerator implements DistributionGenerator{
   @override
@@ -51,7 +53,14 @@ class UniformGenerator implements DistributionGenerator{
     );
   }
 
-  // Данные интервального вариационного ряда
+  /// Строит интервальный вариационный ряд для равномерного распределения.
+  /// Принимает:
+  /// - [values] - сгенерированные значения
+  /// - [a] - нижняя граница распределения
+  /// - [b] - верхняя граница распределения
+  /// - [sampleSize] - размер выборки
+  /// Возвращает:
+  /// - [IntervalData] - данные интервального вариационного ряда
   IntervalData _buildIntervalVariationSeries(
     List<GeneratedValue> values,
     double a,
@@ -95,13 +104,22 @@ class UniformGenerator implements DistributionGenerator{
 
   }
   
-  /// Вычисляет количество интервалов по формуле [N = log n]
+  /// Вычисляет количество интервалов по формуле [N = log n].
+  /// Принимает:
+  /// - [sampleSize] - размер выборки
+  /// Возвращает:
+  /// - [int] - количество интервалов
   int _calculateNumberOfIntevals(int samoleSize){
     final logN = log(samoleSize) / ln2;
     return logN.floor();
   }
 
-  /// Находит индекс интервала для значения
+  /// Находит индекс интервала для значения.
+  /// Принимает:
+  /// - [value] - значение для поиска
+  /// - [intervals] - список интервалов
+  /// Возвращает:
+  /// - [int] - индекс интервала, содержащего значение
   int _findIntervalIndex(double value, List<Interval> intervals){
     for (int i = 0; i < intervals.length; i++){
       if (value >= intervals[i].start && value <= intervals[i].end){
