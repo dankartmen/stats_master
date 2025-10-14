@@ -10,6 +10,8 @@ import 'results_screen.dart';
 
 /// {@template saved_results_screen}
 /// Экран для просмотра и загрузки сохраненных результатов.
+/// Позволяет пользователю загружать и удалять
+/// ранее сохраненные результаты генерации.
 /// {@endtemplate}
 class SavedResultsScreen extends StatelessWidget {
   /// {@macro saved_results_screen}
@@ -66,10 +68,13 @@ class SavedResultsScreen extends StatelessWidget {
 
 /// {@template _saved_result_card}
 /// Карточка сохраненного результата.
+/// Отображает информацию о сохраненном результате и предоставляет
+/// действия для загрузки или удаления.
 /// {@endtemplate}
 class _SavedResultCard extends StatelessWidget {
   const _SavedResultCard({required this.savedResult});
 
+  /// Сохраненный результат для отображения.
   final SavedResult savedResult;
 
   @override
@@ -117,6 +122,9 @@ class _SavedResultCard extends StatelessWidget {
     );
   }
 
+  /// Загружает выбранный результат и переходит к экрану результатов.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
   void _loadResult(BuildContext context) {
     context.read<DistributionBloc>().add(
       SavedResultSelected(savedResult),
@@ -131,6 +139,10 @@ class _SavedResultCard extends StatelessWidget {
     );
   }
 
+  /// Обрабатывает действие из меню карточки.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
+  /// - [action] - выбранное действие ('load' или 'delete')
   void _handleMenuAction(BuildContext context, String action) {
     switch (action) {
       case 'load':
@@ -142,6 +154,9 @@ class _SavedResultCard extends StatelessWidget {
     }
   }
 
+  /// Показывает диалоговое окно подтверждения удаления.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
   void _showDeleteDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -172,6 +187,11 @@ class _SavedResultCard extends StatelessWidget {
     );
   }
 
+  /// Получает цвет для типа распределения.
+  /// Принимает:
+  /// - [type] - тип распределения
+  /// Возвращает:
+  /// - [Color] - цвет для отображения
   Color _getColorForType(DistributionType type) {
     return switch (type) {
       DistributionType.binomial => Colors.blue,
@@ -180,6 +200,11 @@ class _SavedResultCard extends StatelessWidget {
     };
   }
 
+  /// Получает иконку для типа распределения.
+  /// Принимает:
+  /// - [type] - тип распределения
+  /// Возвращает:
+  /// - [IconData] - иконку для отображения
   IconData _getIconForType(DistributionType type) {
     return switch (type) {
       DistributionType.binomial => Icons.bar_chart,
@@ -188,6 +213,11 @@ class _SavedResultCard extends StatelessWidget {
     };
   }
 
+  /// Форматирует дату для отображения.
+  /// Принимает:
+  /// - [date] - дата для форматирования
+  /// Возвращает:
+  /// - [String] - отформатированную строку даты
   String _formatDate(DateTime date) {
     return '${date.day}.${date.month}.${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
   }

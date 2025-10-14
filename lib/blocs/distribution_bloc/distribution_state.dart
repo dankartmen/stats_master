@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+
 import '../../models/distribution_parameters.dart';
 import '../../models/generation_result.dart';
 

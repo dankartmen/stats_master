@@ -7,10 +7,19 @@ import '../models/distribution_parameters.dart';
 import '../models/generation_result.dart';
 import '../models/interval.dart';
 
+/// {@template results_screen}
+/// Экран отображения результатов генерации распределения.
+/// Предоставляет различные представления данных: графики, таблицы и значения,
+/// а также возможность сохранения результатов.
+/// {@endtemplate}
 class ResultsScreen extends StatelessWidget {
-  const ResultsScreen({super.key, required this.generatedResult});
-
+  /// Результат генерации для отображения.
   final GenerationResult generatedResult;
+
+  /// {@macro results_screen}
+  /// Принимает:
+  /// - [generatedResult] - результат генерации значений распределения
+  const ResultsScreen({super.key, required this.generatedResult});
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +48,9 @@ class ResultsScreen extends StatelessWidget {
     );
   }
   
-  /// Создание данных для графика
+  /// Создает данные для графика распределения.
+  /// Возвращает:
+  /// - [List<FlSpot>] - список точек для построения графика
   List<FlSpot> _createChartData() {
     
     final spots = <FlSpot>[];
@@ -53,8 +64,10 @@ class ResultsScreen extends StatelessWidget {
     return spots;
   }
 
-
-  // Показ диалога с информацией о выбранном значении
+  /// Показывает диалоговое окно с детальной информацией о значении.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
+  /// - [index] - индекс значения в результатах
   void _showValueDetails(BuildContext context, int index) {
     final generatedValue = generatedResult.results[index];
     final cumulativeProbabilities = generatedResult.cumulativeProbabilities;
@@ -106,7 +119,10 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  // Показ диалога с информацией о значении для непрерывных распределений
+  /// Показывает диалоговое окно с информацией о значении для непрерывных распределений.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
+  /// - [index] - индекс значения в результатах
   void _showContinuousValueDetails(BuildContext context, int index) {
     final generatedValue = generatedResult.results[index];
     final intervalData = generatedResult.intervalData;
@@ -181,7 +197,12 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  /// Вспомогательный метод для создания строки информации
+  /// Вспомогательный метод для создания строки информации.
+  /// Принимает:
+  /// - [label] - метка информации
+  /// - [value] - значение информации
+  /// Возвращает:
+  /// - [Widget] - строку с меткой и значением
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -203,7 +224,9 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  /// Информация о параметрах распределения
+  /// Строит информацию о параметрах распределения.
+  /// Возвращает:
+  /// - [Widget] - информацию о параметрах распределения
   Widget _buildDistributionInfo() {
     final parameters = generatedResult.parameters;
     
@@ -223,13 +246,15 @@ class ResultsScreen extends StatelessWidget {
             _buildInfoRow('Тип:', 'Нормальное распределение'),
             _buildInfoRow('Математическое ожидание (m):', p.m.toStringAsFixed(2)),
             _buildInfoRow('Стандартное отклонение (σ):', p.sigma.toStringAsFixed(2)),
-            // _buildInfoRow('Дисперсия:', (p.sigma * p.sigma).toStringAsFixed(2)),
           ],
         ),
       _ => _buildInfoRow('Тип:', 'Неизвестное распределение'),
     };
   }
 
+  /// Показывает диалоговое окно для сохранения результата.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
   void _showSaveDialog(BuildContext context) {
     final textController = TextEditingController();
     
@@ -268,6 +293,9 @@ class ResultsScreen extends StatelessWidget {
     );
   }
   
+  /// Получает заголовок AppBar в зависимости от типа распределения.
+  /// Возвращает:
+  /// - [String] - заголовок для AppBar
   String _getAppBarTitle() {
     return switch (generatedResult.parameters) {
       BinomialParameters() => 'Результаты биномиального распределения',
@@ -277,6 +305,11 @@ class ResultsScreen extends StatelessWidget {
     };
   }
 
+  /// Строит интерфейс результатов для биномиального распределения.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
+  /// Возвращает:
+  /// - [Widget] - интерфейс с вкладками для биномиального распределения
   Widget _buildBinominalResults(BuildContext context){
     /// индекс для выбора таблицы
     int selectedTab = 0;
@@ -314,6 +347,11 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
+  /// Строит интерфейс результатов для равномерного распределения.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
+  /// Возвращает:
+  /// - [Widget] - интерфейс с вкладками для равномерного распределения
   Widget _buildUniformResults(BuildContext context) {
     final uniformParameters = generatedResult.parameters as UniformParameters;
     final intervalData = generatedResult.intervalData;
@@ -346,7 +384,12 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  /// Гистограмма для равномерного распределения
+  /// Строит гистограмму для равномерного распределения.
+  /// Принимает:
+  /// - [parameters] - параметры равномерного распределения
+  /// - [intervalData] - данные интервалов
+  /// Возвращает:
+  /// - [Widget] - гистограмму равномерного распределения
   Widget _buildUniformHistogram(UniformParameters parameters, IntervalData? intervalData) {
   if (intervalData == null) {
     return const Center(child: Text('Нет данных для гистограммы'));
@@ -427,6 +470,11 @@ class ResultsScreen extends StatelessWidget {
   );
 }
 
+  /// Строит интерфейс результатов для нормального распределения.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
+  /// Возвращает:
+  /// - [Widget] - интерфейс с вкладками для нормального распределения
   Widget _buildNormalResults(BuildContext context) {
     final normalParameters = generatedResult.parameters as NormalParameters;
     final intervalData = generatedResult.intervalData;
@@ -459,7 +507,12 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  /// Гистограмма для равномерного распределения
+  /// Строит гистограмму для нормального распределения.
+  /// Принимает:
+  /// - [parameters] - параметры нормального распределения
+  /// - [intervalData] - данные интервалов
+  /// Возвращает:
+  /// - [Widget] - гистограмму нормального распределения
   Widget _buildNormalHistogram(NormalParameters parameters, IntervalData? intervalData) {
     if (intervalData == null) {
       return const Center(child: Text('Нет данных для гистограммы'));
@@ -539,7 +592,13 @@ class ResultsScreen extends StatelessWidget {
       ),
     );
   }
-  // Нахождение maxY для графика
+
+  /// Вычисляет максимальное значение Y для гистограммы равномерного распределения.
+  /// Принимает:
+  /// - [parameters] - параметры равномерного распределения
+  /// - [intervalData] - данные интервалов
+  /// Возвращает:
+  /// - [double] - максимальное значение Y для оси графика
   double _calculateMaxYForUniform(UniformParameters parameters ,IntervalData intervalData) {
     double maxY = 0;
     for (final interval in intervalData.intervals) {
@@ -551,7 +610,12 @@ class ResultsScreen extends StatelessWidget {
     return maxY * 1.6;
   }
 
-  // Нахождение maxY для графика
+  /// Вычисляет максимальное значение Y для гистограммы нормального распределения.
+  /// Принимает:
+  /// - [parameters] - параметры нормального распределения
+  /// - [intervalData] - данные интервалов
+  /// Возвращает:
+  /// - [double] - максимальное значение Y для оси графика
   double _calculateMaxYForNormal(NormalParameters parameters ,IntervalData intervalData) {
     double maxY = 0;
     for (final interval in intervalData.intervals) {
@@ -563,7 +627,11 @@ class ResultsScreen extends StatelessWidget {
     return maxY * 1.6;
   }
 
-  /// Таблица интервального вариационного ряда
+  /// Строит таблицу интервального вариационного ряда.
+  /// Принимает:
+  /// - [intervalData] - данные интервалов
+  /// Возвращает:
+  /// - [Widget] - таблицу интервального ряда
   Widget _buildIntervalSeriesTable(IntervalData? intervalData) {
     if (intervalData == null) {
       return const Center(child: Text('Нет данных интервального ряда'));
@@ -624,7 +692,12 @@ class ResultsScreen extends StatelessWidget {
   );
 }
 
-  /// Создает данные для гистограммы равномерного распределения
+  /// Создает данные для гистограммы равномерного распределения.
+  /// Принимает:
+  /// - [parameters] - параметры равномерного распределения
+  /// - [intervalData] - данные интервалов
+  /// Возвращает:
+  /// - [List<FlSpot>] - список точек для построения гистограммы
   List<FlSpot> _createUniformChartData(UniformParameters parameters, IntervalData intervalData) {
     final spots = <FlSpot>[];
     
@@ -636,7 +709,11 @@ class ResultsScreen extends StatelessWidget {
     return spots;
   }
 
-  /// Создает данные для гистограммы нормального распределения
+  /// Создает данные для гистограммы нормального распределения.
+  /// Принимает:
+  /// - [intervalData] - данные интервалов
+  /// Возвращает:
+  /// - [List<FlSpot>] - список точек для построения гистограммы
   List<FlSpot> _createNormalChartData(IntervalData intervalData) {
     final spots = <FlSpot>[];
     
@@ -648,6 +725,9 @@ class ResultsScreen extends StatelessWidget {
     return spots;
   }
 
+  /// Строит вкладку со значениями для непрерывных распределений.
+  /// Возвращает:
+  /// - [Widget] - сетку сгенерированных значений
   Widget _buildValuesTab() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -699,7 +779,14 @@ class ResultsScreen extends StatelessWidget {
       ),
     );
   }
-  /// Cоздание гистограммы для функции плотности распределения 
+
+  /// Строит гистограмму для биномиального распределения.
+  /// Принимает:
+  /// - [n] - количество испытаний
+  /// - [p] - вероятность успеха
+  /// - [sampleSize] - размер выборки
+  /// Возвращает:
+  /// - [Widget] - гистограмму биномиального распределения
   Widget _buildBinominalHistogram(int n, double p, int sampleSize) {
     final chartData = _createChartData();
     return Padding(
@@ -771,7 +858,9 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  /// Cоздание таблицы с частотой распределения
+  /// Строит таблицу частотного распределения.
+  /// Возвращает:
+  /// - [Widget] - таблицу частот
   Widget _buildTableTab() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -817,7 +906,9 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  /// Cоздание с сгенерированными значениями
+  /// Строит вкладку со значениями для дискретных распределений.
+  /// Возвращает:
+  /// - [Widget] - сетку сгенерированных значений
   Widget _buildResultsTab() {
     return Padding(
       padding: const EdgeInsets.all(16.0),

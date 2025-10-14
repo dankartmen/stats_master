@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:stats_master/models/interval.dart';
+import '../models/interval.dart';
 import '../models/distribution_parameters.dart';
 import '../models/generated_value.dart';
 import '../models/generation_result.dart';

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+
 import '../../models/distribution_parameters.dart';
 import '../../models/saved_result.dart';
 /// {@template distribution_event}

@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../blocs/distribution_bloc/distribution_state.dart';
-import 'parameters_screen.dart.dart';
+
 import '../blocs/distribution_bloc/distribution_bloc.dart';
+import '../blocs/distribution_bloc/distribution_event.dart';
+import '../blocs/distribution_bloc/distribution_state.dart';
 import '../models/distribution_parameters.dart';
 import '../models/distribution_type.dart';
-import '../blocs/distribution_bloc/distribution_event.dart';
+import 'parameters_screen.dart.dart';
 
 /// {@template distribution_selection_screen}
 /// Экран выбора типа распределения.
+/// Предоставляет пользователю интерфейс для выбора одного из доступных
+/// статистических распределений и перехода к вводу параметров.
 /// {@endtemplate}
 class DistributionSelectionScreen extends StatelessWidget {
-
+  /// {@macro saved_results_repository}
   const DistributionSelectionScreen({super.key});
   
   @override
@@ -29,12 +32,14 @@ class DistributionSelectionScreen extends StatelessWidget {
             IconButton(onPressed: () => _showAppInfo(context), icon: const Icon(Icons.info_outline), tooltip: 'О приложении',)
           ],
         ),
-        body: _DistributionSelectionContent(),
+        body: _distributionSelectionContent(),
       ),
     );
   }
 
-  
+  /// Показывает диалоговое окно с информацией о приложении.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
   void _showAppInfo(BuildContext context){
     showDialog(
       context: context,
@@ -54,7 +59,11 @@ class DistributionSelectionScreen extends StatelessWidget {
   }
 }
 
-Widget? _DistributionSelectionContent(){
+/// {@template _distribution_selection_content}
+/// Экран выбора распределения.
+/// Содержит заголовок, описание и сетку карточек распределений.
+/// {@endtemplate}
+Widget? _distributionSelectionContent(){
   return Padding(
     padding: const EdgeInsets.all(16.0),
     child: Column(
@@ -84,6 +93,9 @@ Widget? _DistributionSelectionContent(){
   );
 }
 
+/// Строит сетку карточек распределений.
+/// Возвращает:
+/// - [Widget] - сетку с карточками распределений
 Widget _buildDistributionGrid() {
   return GridView.count(
     crossAxisCount: 3,
@@ -130,7 +142,8 @@ Widget _buildDistributionGrid() {
 
 
 /// {@template _distribution_card}
-/// Карточка распределения с анимированным взаимодействием.
+/// Карточка распределения.
+/// Отображает информацию о типе распределения и позволяет перейти к вводу параметров.
 /// {@endtemplate}
 class _DistributionCard extends StatelessWidget {
   const _DistributionCard({
@@ -143,12 +156,25 @@ class _DistributionCard extends StatelessWidget {
     required this.gradient,
   });
 
+  /// Тип распределения
   final DistributionType type;
+
+  /// Заголовок карточки
   final String title;
+
+  /// Подзаголовок
   final String subtitle;
+
+  /// Описание
   final String description;
+
+  /// Иконка
   final IconData icon;
+
+  /// Основной цвет
   final Color color;
+
+  /// Градиент фона
   final Gradient gradient;
 
   @override
@@ -211,6 +237,9 @@ class _DistributionCard extends StatelessWidget {
     );
   }
 
+  // Обрабатывает выбор распределения и переход к экрану параметров.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
   void _selectDistribution(BuildContext context) {
     final parameters = _createDefaultParameters(type);
     
@@ -229,6 +258,11 @@ class _DistributionCard extends StatelessWidget {
     );
   }
 
+  /// Создает параметры по умолчанию для выбранного типа распределения.
+  /// Принимает:
+  /// - [type] - тип распределения
+  /// Возвращает:
+  /// - [DistributionParameters] - параметры распределения по умолчанию
   DistributionParameters _createDefaultParameters(DistributionType type) {
     return switch (type) {
       DistributionType.binomial => const BinomialParameters(n: 10, p: 0.5),
