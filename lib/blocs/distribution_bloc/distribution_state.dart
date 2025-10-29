@@ -1,7 +1,9 @@
 import 'package:equatable/equatable.dart';
 
+import '../../models/all_distribution_parameters.dart';
 import '../../models/distribution_parameters.dart';
 import '../../models/generation_result.dart';
+import '../../models/parameter_estimates.dart';
 
 /// {@template distribution_state}
 /// Базовое состояние DistributionBloc.
@@ -88,4 +90,45 @@ class DistributionSaveInProgress extends DistributionState {
 /// {@endtemplate}
 class DistributionSaveSuccess extends DistributionState {
   const DistributionSaveSuccess();
+}
+
+/// {@template distribution_estimation_success}
+/// Состояние успешной оценки параметров распределения.
+/// {@endtemplate}
+class DistributionEstimationSuccess extends DistributionState {
+  /// Результат оценки параметров.
+  final DistributionEstimate parameterEstimates;
+
+  /// {@macro distribution_estimation_success}
+  const DistributionEstimationSuccess({required this.parameterEstimates});
+
+  @override
+  List<Object> get props => [parameterEstimates];
+}
+/// {@template all_parameters_input}
+/// Состояние ввода параметров всех распределений.
+/// {@endtemplate}
+class AllParametersInput extends DistributionState {
+  /// Параметры всех распределений для ввода.
+  final AllDistributionParameters parameters;
+
+  /// {@macro all_parameters_input}
+  const AllParametersInput({required this.parameters});
+
+  @override
+  List<Object> get props => [parameters];
+}
+
+/// {@template all_estimation_success}
+/// Состояние успешной оценки параметров всех распределений.
+/// {@endtemplate}
+class AllEstimationSuccess extends DistributionState {
+  /// Результат оценки параметров всех распределений.
+  final AllParameterEstimates parameterEstimates;
+
+  /// {@macro all_estimation_success}
+  const AllEstimationSuccess({required this.parameterEstimates});
+
+  @override
+  List<Object> get props => [parameterEstimates];
 }

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+import '../../services/calculators/estimation_calculator.dart';
 import '../../models/saved_result.dart';
 import '../../repositories/distribution_repository.dart';
 import '../../repositories/saved_results_repository.dart';
@@ -35,6 +35,8 @@ class DistributionBloc extends Bloc<DistributionEvent, DistributionState> {
     on<DistributionReset>(_onDistributionReset);
     on<SavedResultSelected>(_onSavedResultSelected);
     on<SaveCurrentResult>(_onSaveCurrentResult);
+    on<AllParametersChanged>(_onAllParametersChanged);
+    on<EstimateAllParametersRequest>(_onEstimateAllParametersRequested);
   }
 
   /// Обработчик события выбора типа распределения.
@@ -163,5 +165,40 @@ class DistributionBloc extends Bloc<DistributionEvent, DistributionState> {
       emit(DistributionErrorState(error.toString()));
     }
   }
+  /// Обработчик события изменения параметров всех распределений.
+  FutureOr<void> _onAllParametersChanged(
+    AllParametersChanged event,
+    Emitter<DistributionState> emit,
+  ) {
+    emit(AllParametersInput(parameters: event.parameters));
+  }
 
+  /// Обработчик события запроса оценки параметров всех распределений.
+  FutureOr<void> _onEstimateAllParametersRequested(
+    EstimateAllParametersRequest event,
+    Emitter<DistributionState> emit,
+  ) async {
+    print('BLoC: Начало оценки всех параметров');
+
+    final currentState = state;
+    if (currentState is! AllParametersInput) {
+      print('BLoC: Ошибка - состояние не AllParametersInput, а ${currentState}'); // Отладочная печать
+      return;
+    }
+
+    emit(const DistributionLoadInProgress());
+    print('BLoC: Состояние изменено на DistributionLoadInProgress');
+
+    try {
+      final calculator = EstimationCalculator(_repository);
+      final estimates = await calculator.calculateAllEstimates(
+        currentState.parameters,
+      );
+      print('BLoC: Оценки успешно вычислены');
+      emit(AllEstimationSuccess(parameterEstimates: estimates));
+      print('BLoC: Состояние изменено на AllEstimationSuccess');
+    } catch (error) {
+      emit(DistributionErrorState(error.toString()));
+    }
+  }
 }

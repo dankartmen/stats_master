@@ -6,7 +6,9 @@ import '../blocs/distribution_bloc/distribution_event.dart';
 import '../blocs/distribution_bloc/distribution_state.dart';
 import '../models/distribution_parameters.dart';
 import '../models/distribution_type.dart';
-import 'parameters_screen.dart.dart';
+import 'all_parameters_screen.dart';
+import 'parameters_screen.dart';
+
 
 /// {@template distribution_selection_screen}
 /// Экран выбора типа распределения.
@@ -32,7 +34,7 @@ class DistributionSelectionScreen extends StatelessWidget {
             IconButton(onPressed: () => _showAppInfo(context), icon: const Icon(Icons.info_outline), tooltip: 'О приложении',)
           ],
         ),
-        body: _distributionSelectionContent(),
+        body: _distributionSelectionContent(context),
       ),
     );
   }
@@ -47,7 +49,8 @@ class DistributionSelectionScreen extends StatelessWidget {
         title: const Text('О приложении'),
         content: const Text(
           'Генератор статистических распределений \n\n'
-          'Выберите тип распределения и задайте параметры для генерации случайных величин.'),
+          'Выберите тип распределения и задайте параметры для генерации случайных величин.\n\n'
+          'Также доступна комплексная оценка параметров всех распределений.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -63,7 +66,7 @@ class DistributionSelectionScreen extends StatelessWidget {
 /// Экран выбора распределения.
 /// Содержит заголовок, описание и сетку карточек распределений.
 /// {@endtemplate}
-Widget? _distributionSelectionContent(){
+Widget _distributionSelectionContent(BuildContext context){ 
   return Padding(
     padding: const EdgeInsets.all(16.0),
     child: Column(
@@ -88,7 +91,58 @@ Widget? _distributionSelectionContent(){
         Expanded(
           child: _buildDistributionGrid(),
         ),
+        const SizedBox(height: 16),
+        // Добавляем кнопку для комплексной оценки
+        _buildComplexEstimationButton(context),
       ],
+    ),
+  );
+}
+
+/// Строит кнопку для комплексной оценки параметров.
+/// Принимает:
+/// - [context] - контекст построения виджета
+/// Возвращает:
+/// - [Widget] - кнопку комплексной оценки
+Widget _buildComplexEstimationButton(BuildContext context) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    child: ElevatedButton(
+      onPressed: () => _navigateToAllParameters(context),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.purple, 
+        foregroundColor: Colors.white,
+        minimumSize: const Size(double.infinity, 50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.analytics, size: 20),
+          SizedBox(width: 8),
+          Text(
+            'Комплексная оценка параметров',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Переход к экрану ввода параметров всех распределений.
+/// Принимает:
+/// - [context] - контекст построения виджета
+void _navigateToAllParameters(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => BlocProvider.value(
+        value: context.read<DistributionBloc>(),
+        child: const AllParametersScreen(),
+      ),
     ),
   );
 }
@@ -131,9 +185,9 @@ Widget _buildDistributionGrid() {
         subtitle: 'Непрерывное',
         description: 'Среднее значение m, стандартное отклонение σ',
         icon: Icons.show_chart,
-        color: Colors.blue,
+        color: Colors.orange,
         gradient: LinearGradient(
-          colors: [Colors.blue.shade400, Colors.blue.shade600],
+          colors: [Colors.orange.shade400, Colors.orange.shade600],
         ),
       )
     ],
@@ -197,7 +251,7 @@ class _DistributionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha:0.2),
+                  color: Colors.white.withValues(alpha: 0.2), // Исправляем withValues на withOpacity
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: Colors.white, size: 32),
@@ -216,7 +270,7 @@ class _DistributionCard extends StatelessWidget {
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha:0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 12,
                 ),
               ),

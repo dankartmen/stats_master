@@ -45,7 +45,7 @@ class NormalGenerator implements DistributionGenerator{
     }
   
     // Строим интервальный вариационный ряд
-    final intervalData = _buildIntervalVariationSeries(results, sampleSize);
+    final intervalData = _buildIntervalVariationSeries(results, sampleSize, m);
 
     return GenerationResult(
       results: results,
@@ -63,15 +63,16 @@ class NormalGenerator implements DistributionGenerator{
   /// - [IntervalData] - данные интервального вариационного ряда
   IntervalData _buildIntervalVariationSeries(
     List<GeneratedValue> values,
-    int sampleSize
+    int sampleSize,
+    double m,
   ){
-    final numberOfIntervals = 13;// _calculateNumberOfIntevals(sampleSize);
+    final numberOfIntervals = 10;// _calculateNumberOfIntevals(sampleSize);
 
     // Делим отрезок (-6, 6) на N одинаковых частей
     final intervalWidth = (12) / numberOfIntervals;
 
     final intervals = List<Interval>.generate(numberOfIntervals,(i){
-      final start = -6 + i * intervalWidth;
+      final start = -6 + i * intervalWidth + m;
       final end = start + intervalWidth;
       return Interval(
         index: i,

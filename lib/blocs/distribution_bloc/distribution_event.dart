@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../models/all_distribution_parameters.dart';
 import '../../models/distribution_parameters.dart';
 import '../../models/saved_result.dart';
 /// {@template distribution_event}
@@ -86,3 +87,40 @@ class SaveCurrentResult extends DistributionEvent {
 }
 
 class DistributionReset extends DistributionEvent {}
+
+/// {@template estimate_parameters_request}
+/// Событие запроса оценки параметров распределения.
+/// {@endtemplate}
+class EstimateParametersRequest extends DistributionEvent {
+  /// {@macro estimate_parameters_request}
+  EstimateParametersRequest(this.sampleSize);
+
+  final int sampleSize;
+
+  @override
+  List<Object?> get props => [sampleSize];
+}
+
+/// {@template all_parameters_changed}
+/// Событие изменения параметров всех распределений.
+/// {@endtemplate}
+class AllParametersChanged extends DistributionEvent {
+  /// {@macro all_parameters_changed}
+  AllParametersChanged(this.parameters);
+
+  final AllDistributionParameters parameters;
+
+  @override
+  List<Object?> get props => [parameters];
+}
+
+/// {@template estimate_all_parameters_request}
+/// Событие запроса оценки параметров всех распределений.
+/// {@endtemplate}
+class EstimateAllParametersRequest extends DistributionEvent {
+  /// {@macro estimate_all_parameters_request}
+  EstimateAllParametersRequest();
+
+  @override
+  List<Object?> get props => [];
+}
