@@ -1,4 +1,3 @@
-// Файл: lib/screens/all_parameter_estimation_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -50,6 +49,11 @@ class AllParameterEstimationScreen extends StatelessWidget {
     );
   }
 
+  /// Строит содержимое экрана с оценками параметров.
+  /// Принимает:
+  /// - [estimates] - оценки параметров всех распределений
+  /// Возвращает:
+  /// - [Widget] - виджет с содержимым экрана оценок
   Widget _buildEstimationContent(AllParameterEstimates estimates) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -78,6 +82,11 @@ class AllParameterEstimationScreen extends StatelessWidget {
     );
   }
 
+  /// Строит заголовок экрана с общей информацией.
+  /// Принимает:
+  /// - [estimates] - оценки параметров всех распределений
+  /// Возвращает:
+  /// - [Widget] - виджет заголовка с информацией о выборках
   Widget _buildHeader(AllParameterEstimates estimates) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,6 +110,12 @@ class AllParameterEstimationScreen extends StatelessWidget {
     );
   }
 
+  /// Строит карточку с оценками параметров для одного распределения.
+  /// Принимает:
+  /// - [estimate] - точечные оценки распределения
+  /// - [color] - цвет акцента для карточки
+  /// Возвращает:
+  /// - [Widget] - виджет карточки распределения
   Widget _buildDistributionEstimate(
       DistributionEstimate estimate, Color color) {
     return Card(
@@ -149,6 +164,11 @@ class AllParameterEstimationScreen extends StatelessWidget {
     );
   }
 
+  /// Строит таблицу с точечными оценками параметров распределения.
+  /// Принимает:
+  /// - [estimate] - точечные оценки распределения
+  /// Возвращает:
+  /// - [Widget] - виджет таблицы с оценками параметров
   Widget _buildEstimationTable(DistributionEstimate estimate) {
     return Table(
       columnWidths: const {
@@ -199,6 +219,9 @@ class AllParameterEstimationScreen extends StatelessWidget {
     );
   }
 
+  /// Строит заголовок таблицы оценок параметров.
+  /// Возвращает:
+  /// - [TableRow] - строка заголовка таблицы
   TableRow _buildTableHeader() {
     return TableRow(
       decoration: BoxDecoration(
@@ -237,6 +260,14 @@ class AllParameterEstimationScreen extends StatelessWidget {
     );
   }
 
+  /// Строит строку таблицы с оценкой параметра.
+  /// Принимает:
+  /// - [parameter] - название параметра
+  /// - [theoretical] - теоретическое значение параметра
+  /// - [estimated] - оцененное значение параметра
+  /// - [difference] - разница между теоретическим и оцененным значением
+  /// Возвращает:
+  /// - [TableRow] - строка таблицы с данными параметра
   TableRow _buildTableRow(
       String parameter, String theoretical, String estimated, String? difference) {
     return TableRow(
@@ -286,6 +317,12 @@ class AllParameterEstimationScreen extends StatelessWidget {
     );
   }
 
+  /// Вычисляет разницу между теоретическим и оцененным значением.
+  /// Принимает:
+  /// - [theoretical] - теоретическое значение параметра
+  /// - [estimated] - оцененное значение параметра
+  /// Возвращает:
+  /// - [String] - форматированная строка с абсолютной разницей и процентным отклонением
   String _calculateDifference(double theoretical, double estimated) {
     final difference = estimated - theoretical;
     final percentage = theoretical != 0 
