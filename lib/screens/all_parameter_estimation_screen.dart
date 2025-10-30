@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../blocs/distribution_bloc/distribution_bloc.dart';
 import '../blocs/distribution_bloc/distribution_state.dart';
+import '../models/interval_estimates.dart';
 import '../models/parameter_estimates.dart';
+import '../services/calculators/interval_estimation_calculator.dart';
 
 /// {@template all_parameter_estimation_screen}
 /// Экран отображения оценок параметров всех распределений.
@@ -65,6 +67,8 @@ class AllParameterEstimationScreen extends StatelessWidget {
                   _buildDistributionEstimate(estimates.uniform, Colors.green),
                   const SizedBox(height: 16),
                   _buildDistributionEstimate(estimates.normal, Colors.orange),
+                  const SizedBox(height: 16),
+                  _buildIntervalEstimates(estimates.normal),
                 ],
               ),
             ),
@@ -162,7 +166,7 @@ class AllParameterEstimationScreen extends StatelessWidget {
         
         // Математическое ожидание
         _buildTableRow(
-          'Математическое ожидание (μ)',
+          'Математическое ожидание (M)',
           estimate.theoreticalMean.toStringAsFixed(4),
           estimate.sampleMean.toStringAsFixed(4),
           _calculateDifference(estimate.theoreticalMean, estimate.sampleMean),
@@ -288,5 +292,245 @@ class AllParameterEstimationScreen extends StatelessWidget {
         ? (difference / theoretical * 100).abs()
         : 0;
     return '${difference.toStringAsFixed(4)} (${percentage.toStringAsFixed(1)}%)';
+  }
+
+  /// Строит интервальные оценки для нормального распределения.
+  /// Принимает:
+  /// - [normalEstimate] - точечные оценки нормального распределения
+  /// Возвращает:
+  /// - [Widget] - виджет с интервальными оценками
+  Widget _buildIntervalEstimates(DistributionEstimate normalEstimate) {
+    final calculator = IntervalEstimationCalculator();
+    final intervalEstimates = calculator.calculateNormalIntervals(
+      sampleMean: normalEstimate.sampleMean,
+      sampleSigma: normalEstimate.sampleSigma,
+      sampleSize: normalEstimate.sampleSize,
+      theoreticalSigma: normalEstimate.theoreticalSigma,
+      confidenceLevel: 0.95,
+    );
+
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Заголовок
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.purple,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Интервальные оценки (нормальное распределение)',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Информация о выборке
+            _buildSampleInfo(intervalEstimates),
+            const SizedBox(height: 16),
+            
+            // Доверительные интервалы
+            _buildConfidenceIntervals(intervalEstimates),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Строит информацию о выборке для интервальных оценок.
+  /// Принимает:
+  /// - [estimates] - интервальные оценки нормального распределения
+  /// Возвращает:
+  /// - [Widget] - виджет с информацией о выборке
+  Widget _buildSampleInfo(NormalIntervalEstimates estimates) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Информация о выборке:',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text('• Размер выборки: n = ${estimates.sampleSize}'),
+          Text('• Выборочное среднее: x̄ = ${estimates.sampleMean.toStringAsFixed(4)}'),
+          Text('• Выборочное стандартное отклонение: s = ${estimates.sampleSigma.toStringAsFixed(4)}'),
+          Text('• Уровень доверия: ${(estimates.confidenceLevel * 100).toInt()}%'),
+        ],
+      ),
+    );
+  }
+
+  /// Строит доверительные интервалы для отображения.
+  /// Принимает:
+  /// - [estimates] - интервальные оценки нормального распределения
+  /// Возвращает:
+  /// - [Widget] - виджет с доверительными интервалами
+  Widget _buildConfidenceIntervals(NormalIntervalEstimates estimates) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Доверительные интервалы:',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 12),
+        
+        // Интервал для M (σ известна)
+        _buildIntervalCard(
+          estimates.sigmaKnown,
+          'Для математического ожидания M (σ известна)',
+          Colors.blue,
+        ),
+        const SizedBox(height: 12),
+        
+        // Интервал для M (σ неизвестна)
+        _buildIntervalCard(
+          estimates.sigmaUnknown,
+          'Для математического ожидания M (σ неизвестна)',
+          Colors.green,
+        ),
+        const SizedBox(height: 12),
+        
+        // Интервал для дисперсии
+        _buildIntervalCard(
+          estimates.varianceInterval,
+          'Для дисперсии σ²',
+          Colors.orange,
+        ),
+        
+        // Пояснения
+        const SizedBox(height: 16),
+        _buildExplanations(),
+      ],
+    );
+  }
+
+  /// Строит карточку для отображения доверительного интервала.
+  /// Принимает:
+  /// - [interval] - доверительный интервал
+  /// - [title] - заголовок карточки
+  /// - [color] - цвет карточки
+  /// Возвращает:
+  /// - [Widget] - виджет карточки интервала
+  Widget _buildIntervalCard(
+    ConfidenceInterval interval,
+    String title,
+    Color color,
+  ) {
+    return Card(
+      color: color.withValues(alpha: 0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Доверительный интервал:',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+              ),
+            ),
+            Text(
+              '[${interval.lowerBound.toStringAsFixed(4)}, ${interval.upperBound.toStringAsFixed(4)}]',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Text(
+                  'Ширина интервала: ${interval.width.toStringAsFixed(4)}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Центр: ${interval.center.toStringAsFixed(4)}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Строит пояснения к интервальным оценкам.
+  /// Возвращает:
+  /// - [Widget] - виджет с пояснениями
+  Widget _buildExplanations() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text(
+            'Пояснения:',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text('• M (σ известна) - используется нормальное распределение'),
+          Text('• M (σ неизвестна) - используется t-распределение Стьюдента'),
+          Text('• σ² (дисперсия) - используется χ²-распределение'),
+          SizedBox(height: 8),
+          Text(
+            'Уровень доверия 95% означает, что в 95% случаев построенные таким образом интервалы будут содержать истинное значение параметра.',
+            style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
   }
 }

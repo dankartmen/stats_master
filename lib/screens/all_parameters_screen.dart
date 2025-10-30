@@ -20,7 +20,7 @@ class AllParametersScreen extends StatefulWidget {
 }
 
 class _AllParametersScreenState extends State<AllParametersScreen> {
-  final _binomialSampleSizeController = TextEditingController(text: '200');
+  final _binomialSampleSizeController = TextEditingController(text: '100');
   final _uniformSampleSizeController = TextEditingController(text: '200');
   final _normalSampleSizeController = TextEditingController(text: '200');
 

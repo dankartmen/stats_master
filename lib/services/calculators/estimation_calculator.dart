@@ -135,17 +135,17 @@ class EstimationCalculator {
       DistributionParameters parameters) {
     return switch (parameters) {
       BinomialParameters p => (
-          p.n * p.p, // μ = n * p
+          p.n * p.p, // M = n * p
           p.n * p.p * (1 - p.p), // σ² = n * p * (1 - p)
           sqrt(p.n * p.p * (1 - p.p)) // σ = √(n * p * (1 - p))
         ),
       UniformParameters p => (
-          (p.a + p.b) / 2, // μ = (a + b) / 2
+          (p.a + p.b) / 2, // M = (a + b) / 2
           (p.b - p.a) * (p.b - p.a) / 12, // σ² = (b - a)² / 12
           (p.b - p.a) / sqrt(12) // σ = (b - a) / √12
         ),
       NormalParameters p => (
-          p.m, // μ = m
+          p.m, // M = m
           p.sigma * p.sigma, // σ² = sigma²
           p.sigma // σ = sigma
         ),

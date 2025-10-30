@@ -37,10 +37,10 @@ class AllDistributionParameters with EquatableMixin {
   /// Параметры по умолчанию
   static AllDistributionParameters get defaultParameters {
     return AllDistributionParameters(
-      binomial: const BinomialParameters(n: 10, p: 0.5),
-      uniform: const UniformParameters(a: 0.0, b: 1.0),
-      normal: const NormalParameters(m: 0, sigma: 1),
-      binomialSampleSize: 200,
+      binomial: const BinomialParameters(n: 10, p: 0.32),
+      uniform: const UniformParameters(a: 3.0, b: 5.0),
+      normal: const NormalParameters(m: 5, sigma: 1),
+      binomialSampleSize: 100,
       uniformSampleSize: 200,
       normalSampleSize: 200,
     );
