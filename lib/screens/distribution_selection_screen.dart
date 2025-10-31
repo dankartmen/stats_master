@@ -9,14 +9,13 @@ import '../models/distribution_type.dart';
 import 'all_parameters_screen.dart';
 import 'parameters_screen.dart';
 
-
 /// {@template distribution_selection_screen}
 /// Экран выбора типа распределения.
 /// Предоставляет пользователю интерфейс для выбора одного из доступных
 /// статистических распределений и перехода к вводу параметров.
 /// {@endtemplate}
 class DistributionSelectionScreen extends StatelessWidget {
-  /// {@macro saved_results_repository}
+  /// {@macro distribution_selection_screen}
   const DistributionSelectionScreen({super.key});
   
   @override
@@ -89,7 +88,12 @@ Widget _distributionSelectionContent(BuildContext context){
         ),
         const SizedBox(height: 32),
         Expanded(
-          child: _buildDistributionGrid(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+              return _buildDistributionGrid(crossAxisCount: crossAxisCount);
+            },
+          ),
         ),
         const SizedBox(height: 16),
         // Добавляем кнопку для комплексной оценки
@@ -108,26 +112,17 @@ Widget _buildComplexEstimationButton(BuildContext context) {
   return Container(
     width: double.infinity,
     padding: const EdgeInsets.symmetric(horizontal: 8),
-    child: ElevatedButton(
+    child: ElevatedButton.icon(
       onPressed: () => _navigateToAllParameters(context),
+      icon: const Icon(Icons.analytics),
+      label: const Text(
+        'Комплексная оценка параметров',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.purple, 
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 50),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.analytics, size: 20),
-          SizedBox(width: 8),
-          Text(
-            'Комплексная оценка параметров',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ],
       ),
     ),
   );
@@ -138,21 +133,26 @@ Widget _buildComplexEstimationButton(BuildContext context) {
 /// - [context] - контекст построения виджета
 void _navigateToAllParameters(BuildContext context) {
   Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (context) => BlocProvider.value(
+    PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => BlocProvider.value(
         value: context.read<DistributionBloc>(),
         child: const AllParametersScreen(),
       ),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
     ),
   );
 }
 
 /// Строит сетку карточек распределений.
+/// Принимает:
+/// - [crossAxisCount] - количество колонок для responsive дизайна
 /// Возвращает:
 /// - [Widget] - сетку с карточками распределений
-Widget _buildDistributionGrid() {
+Widget _buildDistributionGrid({required int crossAxisCount}) {
   return GridView.count(
-    crossAxisCount: 3,
+    crossAxisCount: crossAxisCount,
     crossAxisSpacing: 16,
     mainAxisSpacing: 16,
     childAspectRatio: 1.2,
@@ -195,10 +195,6 @@ Widget _buildDistributionGrid() {
 }
 
 
-/// {@template _distribution_card}
-/// Карточка распределения.
-/// Отображает информацию о типе распределения и позволяет перейти к вводу параметров.
-/// {@endtemplate}
 class _DistributionCard extends StatelessWidget {
   const _DistributionCard({
     required this.type,
@@ -233,58 +229,64 @@ class _DistributionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _selectDistribution(context),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: gradient,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2), // Исправляем withValues на withOpacity
-                  shape: BoxShape.circle,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _selectDistribution(context),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: gradient,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 32),
                 ),
-                child: Icon(icon, color: Colors.white, size: 32),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontSize: 12,
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                description,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 11,
+                const SizedBox(height: 8),
+                Expanded(
+                  child: Text(
+                    description,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 11,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -302,11 +304,20 @@ class _DistributionCard extends StatelessWidget {
     );
 
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => BlocProvider.value(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => BlocProvider.value(
           value: context.read<DistributionBloc>(),
           child: ParametersScreen(parameters: parameters),
         ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          );
+        },
         fullscreenDialog: true,
       ),
     );

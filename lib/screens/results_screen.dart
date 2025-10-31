@@ -1,3 +1,5 @@
+import 'dart:math' show sqrt, pow;
+
 import 'package:flutter/material.dart' hide Interval;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -26,25 +28,167 @@ class ResultsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(_getAppBarTitle()),
-        actions: [IconButton(
+        actions: [
+          IconButton(
             icon: const Icon(Icons.save),
             onPressed: () => _showSaveDialog(context),
             tooltip: 'Сохранить результат',
           ),
         ],
       ),
-      body: generatedResult.parameters is BinomialParameters
-        ? _buildBinominalResults(context)
-        : generatedResult.parameters is UniformParameters
-        ? _buildUniformResults(context)
-        : generatedResult.parameters is NormalParameters
-        ? _buildNormalResults(context)
-        : Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+      body: DefaultTabController(
+        length: 4,
+        child: Column(
+          children: [
+            const TabBar(
+              tabs: [
+                Tab(icon: Icon(Icons.bar_chart), text: 'Гистограмма'),
+                Tab(icon: Icon(Icons.table_chart), text: 'Таблица'),
+                Tab(icon: Icon(Icons.list), text: 'Значения'),
+                Tab(icon: Icon(Icons.analytics), text: 'Статистика'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildHistogramTab(),
+                  _buildTableTab(),
+                  _buildResultsTab(),
+                  _buildStatisticsTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  /// Получает заголовок AppBar на основе типа распределения.
+  /// Возвращает:
+  /// - [String] - заголовок экрана
+  String _getAppBarTitle() {
+    // if (generatedResult.parameters is BinomialParameters) {
+    //   final params = generatedResult.parameters as BinomialParameters;
+    //   return 'Результаты: Биномиальное (n=${params.n}, p=${params.p.toStringAsFixed(2)})';
+    // } else if (generatedResult.parameters is UniformParameters) {
+    //   final params = generatedResult.parameters as UniformParameters;
+    //   return 'Результаты: Равномерное [${params.a}, ${params.b}]';
+    // } else if (generatedResult.parameters is NormalParameters) {
+    //   final params = generatedResult.parameters as NormalParameters;
+    //   return 'Результаты: Нормальное (μ=${params.m}, σ=${params.sigma.toStringAsFixed(2)})';
+    // }
+    return 'Результаты генерации';
+  }
+
+  /// Строит вкладку с гистограммой.
+  /// Возвращает:
+  /// - [Widget] - гистограмму распределения
+  Widget _buildHistogramTab() {
+    if (generatedResult.parameters is BinomialParameters) {
+      final params = generatedResult.parameters as BinomialParameters;
+      return _buildBinominalHistogram(
+        params.n,
+        params.p,
+        generatedResult.sampleSize,
+      );
+    } else if (generatedResult.parameters is UniformParameters) {
+      final params = generatedResult.parameters as UniformParameters;
+      return _buildUniformHistogram(
+        params,
+        generatedResult.intervalData,
+      );
+    } else if (generatedResult.parameters is NormalParameters) {
+      final params = generatedResult.parameters as NormalParameters;
+      return _buildNormalHistogram(
+        params,
+        generatedResult.intervalData,
+      );
+    } else {
+      return const Center(
+        child: Text('Гистограмма не поддерживается для данного распределения'),
+      );
+    }
+  }
+
+  /// Строит вкладку со значениями для дискретных распределений.
+  /// Возвращает:
+  /// - [Widget] - сетку сгенерированных значений
+  Widget _buildResultsTab() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          const Text(
+            'Сгенерированные значения',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Всего значений: ${generatedResult.results.length}',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 10,
+                crossAxisSpacing: 4,
+                mainAxisSpacing: 4,
+              ),
+              itemCount: generatedResult.results.length,
+              itemBuilder: (context, index) {
+                final value = generatedResult.results[index].value;
+                return GestureDetector(
+                  onTap: () => _showValueDetails(context, index),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue),
+                    ),
+                    child: Center(
+                      child: Text(
+                        value.toString(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Строит вкладку со статистикой.
+  /// Возвращает:
+  /// - [Widget] - панель со статистическими данными
+  Widget _buildStatisticsTab() {
+    final mean = generatedResult.results.map((e) => e.value).reduce((a, b) => a + b) / generatedResult.results.length;
+    final variance = generatedResult.results.map((e) => pow(e.value - mean, 2)).reduce((a, b) => a + b) / generatedResult.results.length;
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Это распределение пока не поддерживается'),
+              const Text('Статистические характеристики', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Text('Среднее: ${mean.toStringAsFixed(4)}'),
+              Text('Дисперсия: ${variance.toStringAsFixed(4)}'),
+              Text('Стандартное отклонение: ${sqrt(variance).toStringAsFixed(4)}'),
             ],
           ),
+        ),
+      ),
     );
   }
   
@@ -293,17 +437,7 @@ class ResultsScreen extends StatelessWidget {
     );
   }
   
-  /// Получает заголовок AppBar в зависимости от типа распределения.
-  /// Возвращает:
-  /// - [String] - заголовок для AppBar
-  String _getAppBarTitle() {
-    return switch (generatedResult.parameters) {
-      BinomialParameters() => 'Результаты биномиального распределения',
-      UniformParameters() => 'Результаты равномерного распределения',
-      NormalParameters() => 'Результаты нормального распредления',
-      _ => 'Результаты',
-    };
-  }
+
 
   /// Строит интерфейс результатов для биномиального распределения.
   /// Принимает:
@@ -858,10 +992,13 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  /// Строит таблицу частотного распределения.
+  /// Строит таблицу частотного распределения с интервалами для непрерывных данных.
   /// Возвращает:
-  /// - [Widget] - таблицу частот
+  /// - [Widget] - таблицу частот с интервалами
   Widget _buildTableTab() {
+    // Получаем отсортированные ключи (интервалы)
+    final sortedKeys = generatedResult.frequencyDict.keys.toList()..sort();
+    
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -870,32 +1007,132 @@ class ResultsScreen extends StatelessWidget {
             'Таблица частотного распределения',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
+          const SizedBox(height: 8),
+          Text(
+            'Всего значений: ${generatedResult.results.length}',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
           const SizedBox(height: 16),
+          
+          // Заголовок таблицы
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(12.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Интервал',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      'Частота',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Относительная частота',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      '%',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
           Expanded(
             child: ListView.builder(
-              itemCount: generatedResult.frequencyDict.keys.length,
+              itemCount: sortedKeys.length,
               itemBuilder: (context, index) {
-                final key = generatedResult.frequencyDict.keys.elementAt(index);
-                final value = generatedResult.frequencyDict[key] ?? 0;
-                final percentage = (value / generatedResult.results.length) * 100;
+                final interval = sortedKeys[index];
+                final value = generatedResult.frequencyDict[interval] ?? 0;
+                final relativeFrequency = value / generatedResult.results.length;
+                final percentage = relativeFrequency * 100;
                 
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    title: Text('Значение: $key'),
-                    subtitle: LinearProgressIndicator(
-                      value: value / generatedResult.results.length,
-                      backgroundColor: Colors.grey[200],
-                      color: Colors.blue,
+                // Форматируем интервал для отображения
+                final intervalText = _formatInterval(interval);
+                
+                return Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey[300]!),
                     ),
-                    trailing: Text('$value (${percentage.toStringAsFixed(1)}%)'),
-                    onTap: () {
-                      // Находим первое значение с этим ключом
-                      final firstIndex = generatedResult.results.indexWhere((v) => v.value == key);
-                      if (firstIndex != -1) {
-                        _showValueDetails(context, firstIndex);
-                      }
-                    },
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    child: Row(
+                      children: [
+                        // Интервал
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            intervalText,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        
+                        // Частота
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            value.toString(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        
+                        // Относительная частота (прогресс-бар)
+                        Expanded(
+                          flex: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: LinearProgressIndicator(
+                              value: relativeFrequency,
+                              backgroundColor: Colors.grey[200],
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ),
+                        
+                        // Проценты
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            '${percentage.toStringAsFixed(1)}%',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -906,58 +1143,16 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  /// Строит вкладку со значениями для дискретных распределений.
-  /// Возвращает:
-  /// - [Widget] - сетку сгенерированных значений
-  Widget _buildResultsTab() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          const Text(
-            'Сгенерированные значения',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Всего значений: ${generatedResult.results.length}',
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 10,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
-              ),
-              itemCount: generatedResult.results.length,
-              itemBuilder: (context, index) {
-                final value = generatedResult.results[index].value;
-                return GestureDetector(
-                  onTap: () => _showValueDetails(context, index),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue),
-                    ),
-                    child: Center(
-                      child: Text(
-                        value.toString(),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
+/// Форматирует интервал для отображения в таблице
+String _formatInterval(dynamic interval) {
+  if (interval is String) {
+    return interval;
+  } else if (interval is RangeValues) {
+    return '${interval.start.toStringAsFixed(1)} - ${interval.end.toStringAsFixed(1)}';
+  } else if (interval is List && interval.length == 2) {
+    return '${interval[0].toStringAsFixed(1)} - ${interval[1].toStringAsFixed(1)}';
+  } else {
+    return interval.toString();
   }
+}
 }
