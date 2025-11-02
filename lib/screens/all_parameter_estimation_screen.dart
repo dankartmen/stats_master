@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:stats_master/screens/results_screen.dart';
 
 import '../blocs/distribution_bloc/distribution_bloc.dart';
 import '../blocs/distribution_bloc/distribution_state.dart';
+import '../models/generation_result.dart';
 import '../models/interval_estimates.dart';
 import '../models/parameter_estimates.dart';
 import '../services/calculators/interval_estimation_calculator.dart';
@@ -35,7 +37,7 @@ class AllParameterEstimationScreen extends StatelessWidget {
         body: BlocBuilder<DistributionBloc, DistributionState>(
           builder: (context, state) {
             if (state is AllEstimationSuccess) {
-              return _buildEstimationContent(state.parameterEstimates);
+              return _buildEstimationContent(context: context, state.parameterEstimates);
             } else if (state is DistributionLoadInProgress) {
               return const Center(child: CircularProgressIndicator());
             } else {
@@ -54,7 +56,7 @@ class AllParameterEstimationScreen extends StatelessWidget {
   /// - [estimates] - оценки параметров всех распределений
   /// Возвращает:
   /// - [Widget] - виджет с содержимым экрана оценок
-  Widget _buildEstimationContent(AllParameterEstimates estimates) {
+  Widget _buildEstimationContent(AllParameterEstimates estimates, {required BuildContext context}) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -66,11 +68,11 @@ class AllParameterEstimationScreen extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  _buildDistributionEstimate(estimates.binomial, Colors.blue),
+                  _buildDistributionEstimate(context: context, estimates.binomial, Colors.blue, estimates.binomialResult),
                   const SizedBox(height: 16),
-                  _buildDistributionEstimate(estimates.uniform, Colors.green),
+                  _buildDistributionEstimate(context: context, estimates.uniform, Colors.green, estimates.uniformResult),
                   const SizedBox(height: 16),
-                  _buildDistributionEstimate(estimates.normal, Colors.orange),
+                  _buildDistributionEstimate(context: context, estimates.normal, Colors.orange, estimates.normalResult),
                   const SizedBox(height: 16),
                   _buildIntervalEstimates(estimates.normal),
                 ],
@@ -114,10 +116,10 @@ class AllParameterEstimationScreen extends StatelessWidget {
   /// Принимает:
   /// - [estimate] - точечные оценки распределения
   /// - [color] - цвет акцента для карточки
+  /// - [generationResult] - результат генерации для перехода
   /// Возвращает:
   /// - [Widget] - виджет карточки распределения
-  Widget _buildDistributionEstimate(
-      DistributionEstimate estimate, Color color) {
+  Widget _buildDistributionEstimate(DistributionEstimate estimate, Color color, GenerationResult generationResult, {required BuildContext context}) {
     return Card(
       elevation: 4,
       child: Padding(
@@ -137,12 +139,15 @@ class AllParameterEstimationScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  estimate.distributionName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                TextButton(
+                  child: Text(
+                    estimate.distributionName,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                  onPressed: () => _navigateToResultsScreen(context, generationResult)
                 ),
                 const Spacer(),
                 Text(
@@ -159,6 +164,21 @@ class AllParameterEstimationScreen extends StatelessWidget {
             // Таблица оценок
             _buildEstimationTable(estimate),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Переходит к экрану результатов для конкретного распределения.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
+  /// - [generationResult] - результат генерации распределения
+  void _navigateToResultsScreen(BuildContext context, GenerationResult generationResult) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => BlocProvider.value(
+          value: context.read<DistributionBloc>(),
+          child: ResultsScreen(generatedResult: generationResult),
         ),
       ),
     );
@@ -437,13 +457,14 @@ class AllParameterEstimationScreen extends StatelessWidget {
             fontSize: 16,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         
         // Интервал для M (σ известна)
         _buildIntervalCard(
           estimates.sigmaKnown,
           'Для математического ожидания M (σ известна)',
           Colors.blue,
+          Icons.functions,
         ),
         const SizedBox(height: 12),
         
@@ -452,6 +473,7 @@ class AllParameterEstimationScreen extends StatelessWidget {
           estimates.sigmaUnknown,
           'Для математического ожидания M (σ неизвестна)',
           Colors.green,
+          Icons.science,
         ),
         const SizedBox(height: 12),
         
@@ -460,73 +482,77 @@ class AllParameterEstimationScreen extends StatelessWidget {
           estimates.varianceInterval,
           'Для дисперсии σ²',
           Colors.orange,
+          Icons.trending_up,
         ),
         
         // Пояснения
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         _buildExplanations(),
       ],
     );
   }
 
-  /// Строит карточку для отображения доверительного интервала.
+  /// Строит улучшенную карточку для отображения доверительного интервала.
   /// Принимает:
   /// - [interval] - доверительный интервал
   /// - [title] - заголовок карточки
   /// - [color] - цвет карточки
+  /// - [icon] - иконка для карточки
   /// Возвращает:
   /// - [Widget] - виджет карточки интервала
   Widget _buildIntervalCard(
     ConfidenceInterval interval,
     String title,
     Color color,
+    IconData icon,
   ) {
     return Card(
-      color: color.withValues(alpha: 0.1),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: color.withOpacity(0.3), width: 1),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Доверительный интервал:',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-              ),
-            ),
-            Text(
-              '[${interval.lowerBound.toStringAsFixed(4)}, ${interval.upperBound.toStringAsFixed(4)}]',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 4),
+            // Заголовок с иконкой
             Row(
               children: [
-                Text(
-                  'Ширина интервала: ${interval.width.toStringAsFixed(4)}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
+                Icon(icon, color: color, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: color,
+                    ),
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  'Центр: ${interval.center.toStringAsFixed(4)}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            // Основная информация об интервале
+            _buildIntervalInfoRow('Доверительный интервал:', 
+                '[${interval.lowerBound.toStringAsFixed(4)}, ${interval.upperBound.toStringAsFixed(4)}]',
+                isMain: true),
+            
+            const SizedBox(height: 8),
+            
+            // Дополнительная информация
+            Row(
+              children: [
+                Expanded(
+                  child: _buildIntervalInfoRow('Ширина интервала:', 
+                      interval.width.toStringAsFixed(4)),
+                ),
+                Expanded(
+                  child: _buildIntervalInfoRow('Центр:', 
+                      interval.center.toStringAsFixed(4)),
                 ),
               ],
             ),
@@ -536,35 +562,140 @@ class AllParameterEstimationScreen extends StatelessWidget {
     );
   }
 
-  /// Строит пояснения к интервальным оценкам.
+  /// Строит строку с информацией об интервале
+  Widget _buildIntervalInfoRow(String label, String value, {bool isMain = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: isMain ? 14 : 12,
+            color: Colors.grey[700],
+            fontWeight: isMain ? FontWeight.w500 : FontWeight.normal,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: isMain ? 16 : 14,
+            fontWeight: isMain ? FontWeight.w600 : FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Строит улучшенные пояснения к интервальным оценкам.
   /// Возвращает:
   /// - [Widget] - виджет с пояснениями
   Widget _buildExplanations() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.blue[200]!),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
-            'Пояснения:',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.blue,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Пояснения к интервальным оценкам:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.blue,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          _buildExplanationItem(
+            'M (σ известна)',
+            'Используется нормальное распределение',
+            Colors.blue,
+          ),
+          _buildExplanationItem(
+            'M (σ неизвестна)',
+            'Используется распределение Стьюдента',
+            Colors.green,
+          ),
+          _buildExplanationItem(
+            'σ² (дисперсия)',
+            'Используется χ²-распределение',
+            Colors.orange,
+          ),
+          
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue[100]!),
+            ),
+            child: Text(
+              'Уровень доверия 95% означает, что в 95% случаев построенные таким образом интервалы будут содержать истинное значение параметра.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[700],
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
-          SizedBox(height: 8),
-          Text('• M (σ известна) - используется нормальное распределение'),
-          Text('• M (σ неизвестна) - используется t-распределение Стьюдента'),
-          Text('• σ² (дисперсия) - используется χ²-распределение'),
-          SizedBox(height: 8),
-          Text(
-            'Уровень доверия 95% означает, что в 95% случаев построенные таким образом интервалы будут содержать истинное значение параметра.',
-            style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+        ],
+      ),
+    );
+  }
+
+  /// Строит элемент пояснения
+  Widget _buildExplanationItem(String title, String description, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.only(top: 6),
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

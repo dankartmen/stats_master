@@ -51,9 +51,19 @@ class MainApp extends StatelessWidget {
         brightness: Brightness.light,
       ),
       textTheme: const TextTheme(
-        headlineMedium: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-        bodyLarge: TextStyle(fontSize: 16),
-        bodyMedium: TextStyle(fontSize: 14, color: Colors.grey),
+        displayLarge: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+        displayMedium: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+        displaySmall: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+        headlineMedium: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+        headlineSmall: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+        titleLarge: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+        titleMedium: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
+        titleSmall: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
+        bodyLarge: TextStyle(color: Colors.black87),
+        bodyMedium: TextStyle(color: Colors.black87),
+        bodySmall: TextStyle(color: Colors.black54),
+        labelLarge: TextStyle(color: Colors.black87),
+        labelSmall: TextStyle(color: Colors.black54),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

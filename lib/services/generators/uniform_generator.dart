@@ -68,7 +68,7 @@ class UniformGenerator implements DistributionGenerator{
     int sampleSize
   ){
     // Определяем количество интервалов по формуле N = [log n]
-    final numberOfIntervals = 10;// _calculateNumberOfIntevals(sampleSize);
+    final numberOfIntervals = _calculateNumberOfIntevals(sampleSize);
 
     // Делим отрезок (а, b) на N одинаковых частей
     final intervalWidth = (b - a) / numberOfIntervals;

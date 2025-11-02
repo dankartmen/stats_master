@@ -66,7 +66,7 @@ class NormalGenerator implements DistributionGenerator{
     int sampleSize,
     double m,
   ){
-    final numberOfIntervals = 10;// _calculateNumberOfIntevals(sampleSize);
+    final numberOfIntervals = _calculateNumberOfIntevals(sampleSize);
 
     // Делим отрезок (-6, 6) на N одинаковых частей
     final intervalWidth = (12) / numberOfIntervals;
@@ -119,5 +119,14 @@ class NormalGenerator implements DistributionGenerator{
       return intervals.length - 1;
     }
     return intervals.length - 1;
+  }
+  /// Вычисляет количество интервалов по формуле [N = log n].
+  /// Принимает:
+  /// - [sampleSize] - размер выборки
+  /// Возвращает:
+  /// - [int] - количество интервалов
+  int _calculateNumberOfIntevals(int samoleSize){
+    final logN = log(samoleSize) / ln2;
+    return logN.floor();
   }
 }

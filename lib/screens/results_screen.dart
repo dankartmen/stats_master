@@ -439,84 +439,6 @@ class ResultsScreen extends StatelessWidget {
   
 
 
-  /// Строит интерфейс результатов для биномиального распределения.
-  /// Принимает:
-  /// - [context] - контекст построения виджета
-  /// Возвращает:
-  /// - [Widget] - интерфейс с вкладками для биномиального распределения
-  Widget _buildBinominalResults(BuildContext context){
-    /// индекс для выбора таблицы
-    int selectedTab = 0;
-    final currentParameters = generatedResult.parameters as BinomialParameters;
-    final n = currentParameters.n;
-    final p = currentParameters.p;
-    
-    return DefaultTabController(
-      length: 3,
-      initialIndex: selectedTab,
-      child: Column(
-        children: [
-          Container(
-            color: Theme.of(context).appBarTheme.backgroundColor,
-            child: TabBar(
-              onTap: (index) => selectedTab = index,
-              tabs: const [
-                Tab(text: 'График'),
-                Tab(text: 'Таблица'),
-                Tab(text: 'Значения'),
-              ],
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _buildBinominalHistogram(n, p, generatedResult.sampleSize),
-                _buildTableTab(),
-                _buildResultsTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Строит интерфейс результатов для равномерного распределения.
-  /// Принимает:
-  /// - [context] - контекст построения виджета
-  /// Возвращает:
-  /// - [Widget] - интерфейс с вкладками для равномерного распределения
-  Widget _buildUniformResults(BuildContext context) {
-    final uniformParameters = generatedResult.parameters as UniformParameters;
-    final intervalData = generatedResult.intervalData;
-
-    return DefaultTabController(
-      length: 3,
-      child: Column(
-        children: [
-          Container(
-            color: Theme.of(context).appBarTheme.backgroundColor,
-            child: const TabBar(
-              tabs: [
-                Tab(text: 'Гистограмма'),
-                Tab(text: 'Интервальный ряд'),
-                Tab(text: 'Значения'),
-              ],
-            ),
-          ),
-          Expanded(
-            child:  TabBarView(
-              children: [
-                _buildUniformHistogram(uniformParameters, intervalData),
-                _buildIntervalSeriesTable(intervalData),
-                _buildValuesTab(),
-              ],  
-            ),
-          ),
-        ],
-      )
-    );
-  }
 
   /// Строит гистограмму для равномерного распределения.
   /// Принимает:
@@ -604,42 +526,7 @@ class ResultsScreen extends StatelessWidget {
   );
 }
 
-  /// Строит интерфейс результатов для нормального распределения.
-  /// Принимает:
-  /// - [context] - контекст построения виджета
-  /// Возвращает:
-  /// - [Widget] - интерфейс с вкладками для нормального распределения
-  Widget _buildNormalResults(BuildContext context) {
-    final normalParameters = generatedResult.parameters as NormalParameters;
-    final intervalData = generatedResult.intervalData;
 
-    return DefaultTabController(
-      length: 3,
-      child: Column(
-        children: [
-          Container(
-            color: Theme.of(context).appBarTheme.backgroundColor,
-            child: const TabBar(
-              tabs: [
-                Tab(text: 'Гистограмма'),
-                Tab(text: 'Интервальный ряд'),
-                Tab(text: 'Значения'),
-              ],
-            ),
-          ),
-          Expanded(
-            child:  TabBarView(
-              children: [
-                _buildNormalHistogram(normalParameters, intervalData),
-                _buildIntervalSeriesTable(intervalData),
-                _buildValuesTab(),
-              ],  
-            ),
-          ),
-        ],
-      )
-    );
-  }
 
   /// Строит гистограмму для нормального распределения.
   /// Принимает:
@@ -761,70 +648,7 @@ class ResultsScreen extends StatelessWidget {
     return maxY * 1.6;
   }
 
-  /// Строит таблицу интервального вариационного ряда.
-  /// Принимает:
-  /// - [intervalData] - данные интервалов
-  /// Возвращает:
-  /// - [Widget] - таблицу интервального ряда
-  Widget _buildIntervalSeriesTable(IntervalData? intervalData) {
-    if (intervalData == null) {
-      return const Center(child: Text('Нет данных интервального ряда'));
-    }
 
-  return Padding(
-    padding: const EdgeInsets.all(16.0),
-    child: Column(
-      children: [
-        const Text(
-          'Интервальный вариационный ряд',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Количество интервалов: ${intervalData.numberOfIntervals}',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-        ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: ListView.builder(
-            itemCount: intervalData.intervals.length,
-            itemBuilder: (context, index) {
-              final interval = intervalData.intervals[index];
-              final relativeFreq = interval.relativeFrequency(generatedResult.sampleSize);
-
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                child: ListTile(
-                  title: Text(
-                    'Интервал ${index + 1}: [${interval.start.toStringAsFixed(2)}, ${interval.end.toStringAsFixed(2)})',
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Середина: ${interval.midpoint.toStringAsFixed(2)}'),
-                      Text('Частота: ${interval.frequency}'),
-                      LinearProgressIndicator(
-                        value: relativeFreq,
-                        backgroundColor: Colors.grey[200],
-                        color: Colors.green,
-                      ),
-                    ],
-                  ),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('${(relativeFreq * 100).toStringAsFixed(1)}%'),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    ),
-  );
-}
 
   /// Создает данные для гистограммы равномерного распределения.
   /// Принимает:
@@ -859,60 +683,6 @@ class ResultsScreen extends StatelessWidget {
     return spots;
   }
 
-  /// Строит вкладку со значениями для непрерывных распределений.
-  /// Возвращает:
-  /// - [Widget] - сетку сгенерированных значений
-  Widget _buildValuesTab() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          const Text(
-            'Сгенерированные значения',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Всего значений: ${generatedResult.results.length}',
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 10,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
-              ),
-              itemCount: generatedResult.results.length,
-              itemBuilder: (context, index) {
-                final value = generatedResult.results[index].value;
-                return GestureDetector(
-                  onTap: () => _showValueDetails(context, index),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue),
-                    ),
-                    child: Center(
-                      child: Text(
-                        value.toStringAsFixed(generatedResult.parameters is UniformParameters ? 2 : 0),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   /// Строит гистограмму для биномиального распределения.
   /// Принимает:
@@ -992,11 +762,33 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  /// Строит таблицу частотного распределения с интервалами для непрерывных данных.
+  /// Строит таблицу частотного распределения со значениями по возрастанию.
+  /// Для дискретных распределений отображает отдельные значения,
+  /// для непрерывных - интервалы.
   /// Возвращает:
-  /// - [Widget] - таблицу частот с интервалами
+  /// - [Widget] - таблицу частот с отсортированными значениями или интервалами
   Widget _buildTableTab() {
-    // Получаем отсортированные ключи (интервалы)
+    // Определяем тип распределения
+    final isDiscrete = generatedResult.parameters is BinomialParameters;
+    final isContinuous = generatedResult.parameters is UniformParameters || 
+                        generatedResult.parameters is NormalParameters;
+    
+    if (isDiscrete) {
+      return _buildDiscreteTable();
+    } else if (isContinuous) {
+      return _buildContinuousTable();
+    } else {
+      return const Center(
+        child: Text('Таблица не поддерживается для данного распределения'),
+      );
+    }
+  }
+
+  /// Строит таблицу для дискретных распределений.
+  /// Возвращает:
+  /// - [Widget] - таблицу с отдельными значениями
+  Widget _buildDiscreteTable() {
+    // Получаем ключи и сортируем их по возрастанию
     final sortedKeys = generatedResult.frequencyDict.keys.toList()..sort();
     
     return Padding(
@@ -1009,130 +801,63 @@ class ResultsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
+            'Дискретное распределение - ${_getDistributionName()}',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+          Text(
             'Всего значений: ${generatedResult.results.length}',
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
           const SizedBox(height: 16),
-          
-          // Заголовок таблицы
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8),
-                topRight: Radius.circular(8),
-              ),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Интервал',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      'Частота',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Относительная частота',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      '%',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
           Expanded(
             child: ListView.builder(
               itemCount: sortedKeys.length,
               itemBuilder: (context, index) {
-                final interval = sortedKeys[index];
-                final value = generatedResult.frequencyDict[interval] ?? 0;
-                final relativeFrequency = value / generatedResult.results.length;
-                final percentage = relativeFrequency * 100;
+                final key = sortedKeys[index];
+                final value = generatedResult.frequencyDict[key] ?? 0;
+                final percentage = (value / generatedResult.results.length) * 100;
                 
-                // Форматируем интервал для отображения
-                final intervalText = _formatInterval(interval);
-                
-                return Container(
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey[300]!),
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue),
+                      ),
+                      child: Center(
+                        child: Text(
+                          key.toString(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    child: Row(
+                    title: Text('Значение: $key'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Интервал
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            intervalText,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        
-                        // Частота
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            value.toString(),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                        
-                        // Относительная частота (прогресс-бар)
-                        Expanded(
-                          flex: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: LinearProgressIndicator(
-                              value: relativeFrequency,
-                              backgroundColor: Colors.grey[200],
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ),
-                        
-                        // Проценты
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            '${percentage.toStringAsFixed(1)}%',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
+                        Text('Частота: $value'),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: value / generatedResult.results.length,
+                          backgroundColor: Colors.grey[200],
+                          color: Colors.blue,
                         ),
                       ],
                     ),
+                    trailing: Text('${percentage.toStringAsFixed(1)}%'),
+                    onTap: () {
+                      final firstIndex = generatedResult.results.indexWhere((v) => v.value == key);
+                      if (firstIndex != -1) {
+                        _showValueDetails(context, firstIndex);
+                      }
+                    },
                   ),
                 );
               },
@@ -1143,16 +868,128 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-/// Форматирует интервал для отображения в таблице
-String _formatInterval(dynamic interval) {
-  if (interval is String) {
-    return interval;
-  } else if (interval is RangeValues) {
-    return '${interval.start.toStringAsFixed(1)} - ${interval.end.toStringAsFixed(1)}';
-  } else if (interval is List && interval.length == 2) {
-    return '${interval[0].toStringAsFixed(1)} - ${interval[1].toStringAsFixed(1)}';
-  } else {
-    return interval.toString();
+  /// Строит таблицу для непрерывных распределений.
+  /// Возвращает:
+  /// - [Widget] - таблицу с интервалами
+  Widget _buildContinuousTable() {
+    final intervalData = generatedResult.intervalData;
+    
+    if (intervalData == null) {
+      return const Center(
+        child: Text('Нет данных интервального ряда'),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          const Text(
+            'Интервальный вариационный ряд',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Непрерывное распределение - ${_getDistributionName()}',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+          Text(
+            'Количество интервалов: ${intervalData.numberOfIntervals}',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+          Text(
+            'Ширина интервала: ${intervalData.intervalWidth.toStringAsFixed(4)}',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+          Text(
+            'Всего значений: ${generatedResult.results.length}',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: ListView.builder(
+              itemCount: intervalData.intervals.length,
+              itemBuilder: (context, index) {
+                final interval = intervalData.intervals[index];
+                final relativeFreq = interval.relativeFrequency(generatedResult.sampleSize);
+
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${index + 1}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      'Интервал ${index + 1}: [${interval.start.toStringAsFixed(2)}, ${interval.end.toStringAsFixed(2)})',
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Середина интервала: ${interval.midpoint.toStringAsFixed(2)}'),
+                        Text('Частота: ${interval.frequency}'),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: relativeFreq,
+                          backgroundColor: Colors.grey[200],
+                          color: Colors.green,
+                        ),
+                      ],
+                    ),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('${(relativeFreq * 100).toStringAsFixed(1)}%'),
+                      ],
+                    ),
+                    onTap: () {
+                      // Находим первое значение в этом интервале
+                      final firstIndex = generatedResult.results.indexWhere(
+                        (v) => v.value >= interval.start && v.value < interval.end
+                      );
+                      if (firstIndex != -1) {
+                        _showValueDetails(context, firstIndex);
+                      }
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
-}
+
+  /// Получает название распределения для отображения.
+  /// Возвращает:
+  /// - [String] - название распределения
+  String _getDistributionName() {
+    if (generatedResult.parameters is BinomialParameters) {
+      final params = generatedResult.parameters as BinomialParameters;
+      return 'Биномиальное (n=${params.n}, p=${params.p.toStringAsFixed(2)})';
+    } else if (generatedResult.parameters is UniformParameters) {
+      final params = generatedResult.parameters as UniformParameters;
+      return 'Равномерное [${params.a}, ${params.b}]';
+    } else if (generatedResult.parameters is NormalParameters) {
+      final params = generatedResult.parameters as NormalParameters;
+      return 'Нормальное (μ=${params.m}, σ=${params.sigma.toStringAsFixed(2)})';
+    }
+    return 'Неизвестное распределение';
+  }
+
 }

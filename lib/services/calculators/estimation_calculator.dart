@@ -63,6 +63,9 @@ class EstimationCalculator {
       uniform: uniformEstimate,
       normal: normalEstimate,
       totalSampleSize: totalSampleSize,
+      binomialResult: binomialResult,
+      uniformResult: uniformResult,
+      normalResult: normalResult,
     );
   }
 

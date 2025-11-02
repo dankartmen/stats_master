@@ -34,6 +34,8 @@ class AllDistributionParameters with EquatableMixin {
   /// Размер выборки для нормального распределения
   final int normalSampleSize;
 
+
+  
   /// Параметры по умолчанию
   static AllDistributionParameters get defaultParameters {
     return AllDistributionParameters(

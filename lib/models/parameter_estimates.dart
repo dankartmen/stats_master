@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'generation_result.dart';
+
 /// {@template distribution_estimate}
 /// Оценки параметров для одного распределения.
 /// {@endtemplate}
@@ -68,6 +70,9 @@ class AllParameterEstimates with EquatableMixin {
     required this.uniform,
     required this.normal,
     required this.totalSampleSize,
+    required this.binomialResult, 
+    required this.uniformResult,
+    required this.normalResult,
   });
 
   /// Оценки для биномиального распределения
@@ -82,6 +87,15 @@ class AllParameterEstimates with EquatableMixin {
   /// Общий размер всех выборок
   final int totalSampleSize;
 
+  /// Результат генерации биномиального распределения
+  final GenerationResult binomialResult;
+
+  /// Результат генерации равномерного распределения
+  final GenerationResult uniformResult;
+
+  /// Результат генерации нормального распределения
+  final GenerationResult normalResult;
+  
   @override
-  List<Object> get props => [binomial, uniform, normal, totalSampleSize];
+  List<Object> get props => [binomial, uniform, normal, totalSampleSize, binomialResult, uniformResult, normalResult];
 }
