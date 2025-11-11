@@ -322,6 +322,7 @@ class AllParameterEstimationScreen extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: theoretical == '-' ? Colors.grey : Colors.black,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),

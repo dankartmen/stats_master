@@ -29,8 +29,8 @@ class IntervalEstimationCalculator {
     // Крит. точки распределений(табличные)
     final uAlpha = _getStandardNormalQuantile(confidenceLevel);
     final tAlpha = _getStudentQuantile(confidenceLevel, sampleSize - 1);
-    final chi2Alpha1 = _getChiSquaredQuantile(confidenceLevel, sampleSize - 1);
-    final chi2Alpha2 = _getChiSquaredQuantile(1 - confidenceLevel, sampleSize - 1);
+    final chi2Alpha2 = _getChiSquaredQuantile(1 + confidenceLevel, sampleSize - 1);
+    final chi2Alpha1 = _getChiSquaredQuantile(0.05, sampleSize - 1);
 
     // 1. Доверительный интервал для мат. ожидания (σ известна)
     final sigmaKnownInterval = _calculateSigmaKnownInterval(
@@ -162,13 +162,14 @@ class IntervalEstimationCalculator {
   /// Возвращает:
   /// - [double] - критическая точка стандартного нормального распределения
   double _getStandardNormalQuantile(double confidenceLevel) {
-    final alpha = 1 - confidenceLevel;
-    return switch (confidenceLevel) {
+    final t = confidenceLevel / 2;
+    return switch (t) {
+      0.45 => 0.1736,
       0.90 => 1.645,
       0.95 => 1.960,
       0.99 => 2.576,
       0.999 => 3.291,
-      _ => _approximateNormalQuantile(1 - alpha / 2),
+      _ => _approximateNormalQuantile(1 - t / 2),
     };
   }
 
@@ -180,7 +181,7 @@ class IntervalEstimationCalculator {
   /// - [double] - критическая точка распределения Стьюдента
   double _getStudentQuantile(double confidenceLevel, int degreesOfFreedom) {
     // Для больших степеней свободы (>30) приближаем к нормальному распределению
-    if (degreesOfFreedom >= 30) {
+    if (degreesOfFreedom >= 300) {
       return _getStandardNormalQuantile(confidenceLevel);
     }
     
@@ -194,8 +195,8 @@ class IntervalEstimationCalculator {
       10: {0.90: 1.812, 0.95: 2.228, 0.99: 3.169},
       20: {0.90: 1.725, 0.95: 2.086, 0.99: 2.845},
       30: {0.90: 1.697, 0.95: 2.042, 0.99: 2.750},
-      100: {0.90: 1.6603911559963895, 0.95: 1.9842169515086827, 0.99: 2.6264054572808275},
-      200: {0.90: 1.652546746165939,0.95: 1.971956544249395, 0.99: 2.600760216031323}
+      99: {0.90: 1.6603911559963895, 0.95: 1.9842169515086827, 0.99: 2.6264054572808275},
+      199: {0.90: 1.652546746165939,0.95: 1.971956544249395, 0.99: 2.600760216031323}
     };
     
     return table[degreesOfFreedom]?[confidenceLevel] ?? 
@@ -209,6 +210,7 @@ class IntervalEstimationCalculator {
   /// Возвращает:
   /// - [double] - критическая точка распределения хи-квадрат
   double _getChiSquaredQuantile(double probability, int degreesOfFreedom) {
+    final t = (probability / 2);
     // Табличные значения χ²-распределения
     final table = {
       1: {0.025: 0.001, 0.05: 0.004, 0.95: 3.841, 0.975: 5.024, 0.99: 6.635, 0.995: 7.879},
@@ -216,17 +218,17 @@ class IntervalEstimationCalculator {
       5: {0.025: 0.831, 0.05: 1.145, 0.95: 11.070, 0.975: 12.833, 0.99: 15.086, 0.995: 16.750},
       10: {0.025: 3.247, 0.05: 3.940, 0.95: 18.307, 0.975: 20.483, 0.99: 23.209, 0.995: 25.188},
       20: {0.025: 9.591, 0.05: 10.851, 0.95: 31.410, 0.975: 34.170, 0.99: 37.566, 0.995: 39.997},
-      30: {0.025: 16.791, 0.05: 18.493, 0.95: 43.773, 0.975: 46.979, 0.99: 50.892, 0.995: 53.672},
-      200: {0.90: 174.835273, 0.95: 168.278554, 0.99: 156.431966}
+      29: {0.025: 16.791, 0.05: 18.493, 0.95: 43.773, 0.975: 46.979, 0.99: 50.892, 0.995: 53.672},
+      199: {0.025: 239.9597, 0.90: 174.835273, 0.975: 161.8262, 0.99: 156.431966}
     };
     
     // Для больших степеней свободы используем приближение
-    if (degreesOfFreedom > 30) {
-      final u = _getStandardNormalQuantile(probability);
+    if (degreesOfFreedom > 300) {
+      final u = _getStandardNormalQuantile(t);
       return degreesOfFreedom * pow(1 - 2/(9*degreesOfFreedom) + u * sqrt(2/(9*degreesOfFreedom)), 3).toDouble();
     }
     
-    return table[degreesOfFreedom]?[probability] ?? 
+    return table[degreesOfFreedom]?[t] ?? 
            degreesOfFreedom.toDouble();
   }
 
