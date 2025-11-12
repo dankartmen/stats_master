@@ -7,6 +7,7 @@ import '../blocs/distribution_bloc/distribution_state.dart';
 import '../models/distribution_parameters.dart';
 import '../models/distribution_type.dart';
 import 'all_parameters_screen.dart';
+import 'bayesian_classifier_screen.dart';
 import 'parameters_screen.dart';
 
 /// {@template distribution_selection_screen}
@@ -98,6 +99,7 @@ Widget _distributionSelectionContent(BuildContext context){
         const SizedBox(height: 16),
         // Добавляем кнопку для комплексной оценки
         _buildComplexEstimationButton(context),
+        _buildBayesianClassifierButton(context),
       ],
     ),
   );
@@ -335,4 +337,33 @@ class _DistributionCard extends StatelessWidget {
       DistributionType.normal => const NormalParameters(m: 0, sigma: 1)
     };
   }
+}
+
+
+Widget _buildBayesianClassifierButton(BuildContext context) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    child: ElevatedButton.icon(
+      onPressed: () => _navigateToBayesianClassifier(context),
+      icon: const Icon(Icons.category),
+      label: const Text(
+        'Байесовский классификатор',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.purple,
+        foregroundColor: Colors.white,
+        minimumSize: const Size(double.infinity, 50),
+      ),
+    ),
+  );
+}
+
+void _navigateToBayesianClassifier(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => const BayesianClassifierScreen(),
+    ),
+  );
 }

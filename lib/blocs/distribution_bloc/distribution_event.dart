@@ -1,8 +1,10 @@
 import 'package:equatable/equatable.dart';
 
 import '../../models/all_distribution_parameters.dart';
+import '../../models/bayesian_classifier.dart';
 import '../../models/distribution_parameters.dart';
 import '../../models/saved_result.dart';
+import 'distribution_state.dart';
 /// {@template distribution_event}
 /// Базовое событие для DistributionBloc.
 /// {@endtemplate}
@@ -123,4 +125,13 @@ class EstimateAllParametersRequest extends DistributionEvent {
 
   @override
   List<Object?> get props => [];
+}
+
+class BayesianClassificationRequest extends DistributionEvent {
+  final BayesianClassifier classifier;
+  
+  BayesianClassificationRequest(this.classifier);
+  
+  @override
+  List<Object?> get props => [classifier];
 }

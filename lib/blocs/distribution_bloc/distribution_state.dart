@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../models/all_distribution_parameters.dart';
+import '../../models/bayesian_classifier.dart';
 import '../../models/distribution_parameters.dart';
 import '../../models/generation_result.dart';
 import '../../models/parameter_estimates.dart';
@@ -131,4 +132,13 @@ class AllEstimationSuccess extends DistributionState {
 
   @override
   List<Object> get props => [parameterEstimates];
+}
+
+class BayesianClassificationSuccess extends DistributionState {
+  final BayesianClassifier classifier;
+  
+  const BayesianClassificationSuccess(this.classifier);
+  
+  @override
+  List<Object> get props => [classifier];
 }
