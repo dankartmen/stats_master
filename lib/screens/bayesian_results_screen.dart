@@ -96,21 +96,7 @@ class BayesianResultsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: LineChart(
-                LineChartData(
-                  gridData: const FlGridData(show: true),
-                  titlesData: const FlTitlesData(show: false),
-                  borderData: FlBorderData(show: true),
-                  lineBarsData: [
-                    _buildDensityLine(1, Colors.blue),
-                    _buildDensityLine(2, Colors.red),
-                  ],
-                  minX: _getMinX(),
-                  maxX: _getMaxX(),
-                  minY: 0,
-                  maxY: _getMaxY(),
-                ),
-              ),
+              child: _buildCombinedChart(),
             ),
             const SizedBox(height: 16),
             _buildLegend(),
@@ -120,24 +106,121 @@ class BayesianResultsScreen extends StatelessWidget {
     );
   }
 
-  LineChartBarData _buildDensityLine(int classNumber, Color color) {
-    final isClass1 = classNumber == 1;
-    final params = isClass1 ? classifier.class1 : classifier.class2;
-    final probability = isClass1 ? classifier.p1 : classifier.p2;
-    
-    final spots = _generateDensityPoints(params, probability);
-    
-    return LineChartBarData(
-      spots: spots,
-      isCurved: true,
-      color: color,
-      barWidth: 2,
-      isStrokeCapRound: true,
-      belowBarData: BarAreaData(show: false),
+  Widget _buildCombinedChart() {
+    final minX = _getMinX();
+    final maxX = _getMaxX();
+    final maxY = _getMaxY();
+
+    // Line for class 1 (blue)
+    final class1Spots = _generateSpotsForClass(classifier.class1, classifier.p1);
+    final class1IsCurved = classifier.class1 is NormalParameters;
+    final class1Fill = classifier.class1 is! NormalParameters; // Fill for uniform
+
+    // Line for class 2 (red)
+    final class2Spots = _generateSpotsForClass(classifier.class2, classifier.p2);
+    final class2IsCurved = classifier.class2 is NormalParameters;
+    final class2Fill = classifier.class2 is! NormalParameters; // Fill for uniform
+
+    return LineChart(
+      LineChartData(
+        gridData: const FlGridData(show: true),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 50,
+              interval: maxY / 5,
+              getTitlesWidget: (value, meta) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Text(
+                    '${value.toStringAsFixed(1)}',
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                );
+              },
+            ),
+            axisNameWidget: const Text(
+              'Плотность',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 30,
+              interval: 1.0,
+              getTitlesWidget: (value, meta) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    '${value.toInt()}',
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                );
+              },
+            ),
+            axisNameWidget: const Text(
+              'Значение признака x',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(show: true),
+        lineBarsData: [
+          // Класс 1 (синий цвет)
+          LineChartBarData(
+            spots: class1Spots,
+            isCurved: class1IsCurved,
+            color: Colors.blue,
+            barWidth: 3,
+            isStrokeCapRound: true,
+            belowBarData: class1Fill
+                ? BarAreaData(
+                    show: true,
+                    color: Colors.blue.withOpacity(0.3),
+                  )
+                : BarAreaData(show: false),
+          ),
+          // Класс 2 (красный цвет)
+          LineChartBarData(
+            spots: class2Spots,
+            isCurved: class2IsCurved,
+            color: Colors.red,
+            barWidth: 3,
+            isStrokeCapRound: true,
+            belowBarData: class2Fill
+                ? BarAreaData(
+                    show: true,
+                    color: Colors.red.withOpacity(0.3),
+                  )
+                : BarAreaData(show: false),
+          ),
+        ],
+        minX: minX,
+        maxX: maxX,
+        minY: 0,
+        maxY: maxY,
+      ),
     );
   }
 
-  List<FlSpot> _generateDensityPoints(DistributionParameters params, double probability) {
+  List<FlSpot> _generateSpotsForClass(DistributionParameters params, double probability) {
+    if (params is NormalParameters) {
+      return _generateNormalPoints(params, probability);
+    } else if (params is UniformParameters) {
+      return _generateUniformPoints(params, probability);
+    }
+    return [];
+  }
+
+  List<FlSpot> _generateNormalPoints(NormalParameters params, double probability) {
     final spots = <FlSpot>[];
     final minX = _getMinX();
     final maxX = _getMaxX();
@@ -145,9 +228,26 @@ class BayesianResultsScreen extends StatelessWidget {
     
     for (int i = 0; i <= steps; i++) {
       final x = minX + (maxX - minX) * i / steps;
-      final density = _calculateDensity(params, x) * probability;
+      final density = _normalDensity(x, params.m, params.sigma) * probability;
       spots.add(FlSpot(x, density));
     }
+    
+    return spots;
+  }
+
+  List<FlSpot> _generateUniformPoints(UniformParameters params, double probability) {
+    final minX = _getMinX();
+    final maxX = _getMaxX();
+    final density = (1 / (params.b - params.a)) * probability;
+    
+    final spots = <FlSpot>[
+      FlSpot(minX, 0),
+      FlSpot(params.a, 0),
+      FlSpot(params.a, density),
+      FlSpot(params.b, density),
+      FlSpot(params.b, 0),
+      FlSpot(maxX, 0),
+    ];
     
     return spots;
   }
@@ -160,25 +260,26 @@ class BayesianResultsScreen extends StatelessWidget {
     };
   }
 
+  double _uniformDensity(double x, double a, double b) {
+    // Для равномерного распределения плотность постоянна на интервале [a, b] и равна 0 вне его
+    return (x >= a && x <= b) ? 1 / (b - a) : 0;
+  }
+
   double _normalDensity(double x, double m, double sigma) {
     final exponent = -0.5 * pow((x - m) / sigma, 2);
     return (1 / (sigma * sqrt(2 * 3.1415926535))) * exp(exponent);
   }
 
-  double _uniformDensity(double x, double a, double b) {
-    return (x >= a && x <= b) ? 1 / (b - a) : 0;
-  }
-
   double _getMinX() {
     final min1 = _getDistributionMin(classifier.class1);
     final min2 = _getDistributionMin(classifier.class2);
-    return (min(min1, min2) - 1).clamp(-10.0, 10.0); // Ограничиваем диапазон
+    return min(min1, min2).clamp(0.0, 10.0); // Для U(3,5) и N(5,1) min = 2
   }
 
   double _getMaxX() {
     final max1 = _getDistributionMax(classifier.class1);
     final max2 = _getDistributionMax(classifier.class2);
-    return (max(max1, max2) + 1).clamp(-10.0, 15.0); // Ограничиваем диапазон
+    return (max(max1, max2) + 1).clamp(0.0, 10.0); // Для U(3,5) и N(5,1) max = 9
   }
 
   double _getDistributionMin(DistributionParameters params) {
@@ -251,7 +352,7 @@ class BayesianResultsScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Если ${classifier.p1.toStringAsFixed(3)}·f₁(x) ≥ ${classifier.p2.toStringAsFixed(3)}·f₂(x), '
-              'то объект относится к ${classifier.class1Name}, иначе к ${classifier.class2Name}',
+              'то объект относится к ${classifier.class1Name.replaceAll('ый', 'ому').replaceAll('сс', 'су').toLowerCase()}, иначе к ${classifier.class2Name.replaceAll('ый', 'ому').replaceAll('сс', 'су').toLowerCase()}',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 14),
             ),
