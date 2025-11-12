@@ -55,6 +55,18 @@ class BayesianClassifier with EquatableMixin {
     );
   }
 
+  /// Параметры по умолчанию
+  static BayesianClassifier get defaultParameters {
+      return BayesianClassifier(
+        class1: const UniformParameters(a: 3.0, b: 5.0),
+        class2: const NormalParameters(m: 5.0, sigma: 1.0),
+        p1: 0.5,
+        p2: 0.5,
+        class1Name: 'Равномерный класс',
+        class2Name: 'Нормальный класс',
+      );
+    }
+
   @override
   List<Object?> get props => [class1, class2, p1, p2, class1Name, class2Name];
 }

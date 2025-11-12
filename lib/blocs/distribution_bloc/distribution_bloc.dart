@@ -37,7 +37,18 @@ class DistributionBloc extends Bloc<DistributionEvent, DistributionState> {
     on<SaveCurrentResult>(_onSaveCurrentResult);
     on<AllParametersChanged>(_onAllParametersChanged);
     on<EstimateAllParametersRequest>(_onEstimateAllParametersRequested);
+    on<BayesianClassificationRequest>((event, emit) async {
+      emit(DistributionLoadInProgress());
+      try {
+
+        await Future.delayed(const Duration(milliseconds: 500));
+        emit(BayesianClassificationSuccess(event.classifier));
+      } catch (error) {
+        emit(DistributionErrorState(error.toString()));
+      }
+    });
   }
+  
 
   /// Обработчик события выбора типа распределения.
   /// Переводит BLoC в состояние выбора распределения.

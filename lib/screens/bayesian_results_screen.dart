@@ -172,27 +172,27 @@ class BayesianResultsScreen extends StatelessWidget {
   double _getMinX() {
     final min1 = _getDistributionMin(classifier.class1);
     final min2 = _getDistributionMin(classifier.class2);
-    return min(min1, min2) - 1;
+    return (min(min1, min2) - 1).clamp(-10.0, 10.0); // Ограничиваем диапазон
   }
 
   double _getMaxX() {
     final max1 = _getDistributionMax(classifier.class1);
     final max2 = _getDistributionMax(classifier.class2);
-    return max(max1, max2) + 1;
+    return (max(max1, max2) + 1).clamp(-10.0, 15.0); // Ограничиваем диапазон
   }
 
   double _getDistributionMin(DistributionParameters params) {
     return switch (params) {
-      NormalParameters p => p.m - 3 * p.sigma,
-      UniformParameters p => p.a,
+      NormalParameters p => p.m - 3 * p.sigma, // Для N(5,1) это 2
+      UniformParameters p => p.a, // Для U(3,5) это 3
       _ => 0,
     };
   }
 
   double _getDistributionMax(DistributionParameters params) {
     return switch (params) {
-      NormalParameters p => p.m + 3 * p.sigma,
-      UniformParameters p => p.b,
+      NormalParameters p => p.m + 3 * p.sigma, // Для N(5,1) это 8
+      UniformParameters p => p.b, // Для U(3,5) это 5
       _ => 1,
     };
   }

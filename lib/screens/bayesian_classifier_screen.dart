@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/distribution_bloc/distribution_bloc.dart';
 import '../blocs/distribution_bloc/distribution_event.dart';
+import '../blocs/distribution_bloc/distribution_state.dart';
 import '../models/bayesian_classifier.dart';
 import '../models/distribution_parameters.dart';
 import '../models/distribution_type.dart';
+import 'bayesian_results_screen.dart';
 
 /// {@template bayesian_classifier_screen}
 /// Экран для настройки байесовского классификатора
@@ -19,20 +21,16 @@ class BayesianClassifierScreen extends StatefulWidget {
 
 class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
   final _p1Controller = TextEditingController(text: '0.5');
-  final _class1NameController = TextEditingController(text: 'Класс 1');
-  final _class2NameController = TextEditingController(text: 'Класс 2');
+  final _class1NameController = TextEditingController(text: 'Равномерный класс');
+  final _class2NameController = TextEditingController(text: 'Нормальный класс');
   
   late BayesianClassifier _classifier;
 
   @override
   void initState() {
     super.initState();
-    _classifier = BayesianClassifier(
-      class1: const NormalParameters(m: 0, sigma: 1),
-      class2: const NormalParameters(m: 2, sigma: 1),
-      p1: 0.5,
-      p2: 0.5,
-    );
+    _classifier = BayesianClassifier.defaultParameters;
+    _updateControllers();
   }
 
   @override
@@ -45,27 +43,55 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Байесовский классификатор'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _buildPriorProbabilities(),
-              const SizedBox(height: 20),
-              _buildClassParameters(1),
-              const SizedBox(height: 20),
-              _buildClassParameters(2),
-              const SizedBox(height: 30),
-              _buildClassifyButton(),
-            ],
+    return BlocListener<DistributionBloc, DistributionState>(
+      listener: (context, state) {
+        if (state is BayesianClassificationSuccess) {
+          _navigateToResultsScreen(context, state.classifier);
+        }
+        if (state is DistributionErrorState) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка: ${state.error}')),
+          );
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Байесовский классификатор'),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildPriorProbabilities(),
+                const SizedBox(height: 20),
+                _buildClassParameters(1),
+                const SizedBox(height: 20),
+                _buildClassParameters(2),
+                const SizedBox(height: 30),
+                _buildClassifyButton(),
+                _buildResetButton(),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  void _navigateToResultsScreen(BuildContext context, BayesianClassifier classifier) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => BayesianResultsScreen(classifier: classifier),
+      ),
+    );
+  }
+  
+  /// Обновляет контроллеры значениями из классификатора
+  void _updateControllers() {
+    _p1Controller.text = _classifier.p1.toString();
+    _class1NameController.text = _classifier.class1Name;
+    _class2NameController.text = _classifier.class2Name;
   }
 
   Widget _buildPriorProbabilities() {
@@ -197,6 +223,7 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
             _classifier = isClass1 
                 ? _classifier.copyWith(class1: newParams)
                 : _classifier.copyWith(class2: newParams);
+            _updateControllers();
           });
         }
       },
@@ -322,9 +349,20 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
 
   DistributionParameters _createDefaultParameters(DistributionType type) {
     return switch (type) {
-      DistributionType.normal => const NormalParameters(m: 0, sigma: 1),
-      DistributionType.uniform => const UniformParameters(a: 0, b: 1),
+      DistributionType.normal => const NormalParameters(m: 5.0, sigma: 1),
+      DistributionType.uniform => const UniformParameters(a: 3.0, b: 5.0),
       _ => throw ArgumentError('Unsupported distribution type'),
     };
+  }
+  Widget _buildResetButton() {
+    return OutlinedButton(
+      onPressed: () {
+        setState(() {
+          _classifier = BayesianClassifier.defaultParameters;
+          _updateControllers();
+        });
+      },
+      child: const Text('Сбросить к значениям по умолчанию'),
+    );
   }
 }
