@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../models/bayesian_classifier.dart';
 import '../models/classification_models.dart';
 import '../models/distribution_parameters.dart';
+import 'value_details_screen.dart';
 
 /// {@template bayesian_results_screen}
 /// Экран результатов байесовской классификации
@@ -111,15 +112,125 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
               const SizedBox(height: 16),
               _buildTestSummary(_testResult!),
               const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => _showDetailedResults(_testResult!),
-                  child: const Text('Подробные результаты'),
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _showDetailedResults(_testResult!),
+                      child: const Text('Подробные результаты'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _showValueSelection,
+                      child: const Text('Просмотреть значения'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showValueSelection() {
+    if (_testResult == null) return;
+
+    final samples = _testResult!.classifiedSamples;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          width: 600,
+          height: 500,
+          child: Column(
+            children: [
+              const Text(
+                'Выберите значение для детального просмотра',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: samples.length,
+                  itemBuilder: (context, index) {
+                    final sample = samples[index] as DetailedClassifiedSample;
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: sample.isCorrect ? Colors.green[50] : Colors.red[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: sample.isCorrect ? Colors.green : Colors.red,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              sample.value.toStringAsFixed(2),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: sample.isCorrect ? Colors.green : Colors.red,
+                              ),
+                            ),
+                          ),
+                        ),
+                        title: Text('Значение: ${sample.value.toStringAsFixed(4)}'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Истинный: ${sample.trueClass ? widget.classifier.class1Name : widget.classifier.class2Name}'),
+                            Text('Прогноз: ${sample.predictedClass ? widget.classifier.class1Name : widget.classifier.class2Name}'),
+                            Text(
+                              sample.isCorrect ? '✓ Правильно' : '✗ Ошибка',
+                              style: TextStyle(
+                                color: sample.isCorrect ? Colors.green : Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        trailing: const Icon(Icons.arrow_forward),
+                        onTap: () {
+                          Navigator.pop(context); // Закрываем диалог выбора
+                          _showValueDetails(sample);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Закрыть'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Метод для показа деталей значения
+  void _showValueDetails(DetailedClassifiedSample sample) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ValueDetailsScreen(
+          classifier: widget.classifier,
+          sample: sample,
+          intersectionPoints: _intersectionPoints,
         ),
       ),
     );
@@ -160,7 +271,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
       ),
     );
   }
-  
+
   Widget _buildClassInfo(String name, double probability, DistributionParameters params) {
     return Column(
       children: [
@@ -637,7 +748,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     });
 
     try {
-      final result = await widget.classifier.calculateErrorRateAsync(
+      final result = await widget.classifier.calculateDetailedErrorRateAsync(
         samplesPerClass: 200,
       );
       

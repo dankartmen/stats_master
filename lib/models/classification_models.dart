@@ -54,3 +54,26 @@ class ClassificationResult with EquatableMixin {
     intersectionPoints,
   ];
 }
+
+/// Расширенная информация о классифицированном образце
+class DetailedClassifiedSample extends ClassifiedSample {
+  final double density1; // p(ω₁)·f₁(x)
+  final double density2; // p(ω₂)·f₂(x)
+  final double decisionBoundary; // Разность плотностей
+
+  const DetailedClassifiedSample({
+    required super.value,
+    required super.trueClass,
+    required super.predictedClass,
+    required super.isCorrect,
+    required this.density1,
+    required this.density2,
+    required this.decisionBoundary,
+  });
+
+  /// В какую сторону отклоняется решение
+  bool get favorsClass1 => decisionBoundary >= 0;
+  
+  /// Насколько уверенно классификация
+  double get confidence => decisionBoundary.abs();
+}

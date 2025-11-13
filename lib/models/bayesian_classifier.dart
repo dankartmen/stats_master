@@ -230,5 +230,54 @@ extension BayesianClassifierAsyncAnalysis on BayesianClassifier {
     };
   }
 
+  /// Рассчитывает детальную информацию для одного значения
+DetailedClassifiedSample classifyValueWithDetails(double value, bool trueClass) {
+  final density1 = _calculateDensity(class1, value) * p1;
+  final density2 = _calculateDensity(class2, value) * p2;
+  final predictedClass = density1 >= density2;
+  final decisionBoundary = density1 - density2;
+
+  return DetailedClassifiedSample(
+    value: value,
+    trueClass: trueClass,
+    predictedClass: predictedClass,
+    isCorrect: predictedClass == trueClass,
+    density1: density1,
+    density2: density2,
+    decisionBoundary: decisionBoundary,
+  );
+}
+
+/// Возвращает детализированные результаты классификации
+Future<ClassificationResult> calculateDetailedErrorRateAsync({
+  int samplesPerClass = 1000,
+}) async {
+  final testSamples = await TestDataGenerator.generateTestData(
+    class1Params: class1,
+    class2Params: class2,
+    samplesPerClass: samplesPerClass,
+  );
   
+  return _calculateDetailedErrorRateForSamples(testSamples);
+}
+
+ClassificationResult _calculateDetailedErrorRateForSamples(List<TestSample> testSamples) {
+  int correctClassifications = 0;
+  int totalSamples = testSamples.length;
+  
+  final detailedSamples = testSamples.map((sample) {
+    return classifyValueWithDetails(sample.value, sample.trueClass);
+  }).toList();
+
+  correctClassifications = detailedSamples.where((s) => s.isCorrect).length;
+  final errorRate = (totalSamples - correctClassifications) / totalSamples;
+
+  return ClassificationResult(
+    errorRate: errorRate,
+    correctClassifications: correctClassifications,
+    totalSamples: totalSamples,
+    classifiedSamples: detailedSamples,
+    intersectionPoints: findIntersectionPoints(),
+  );
+}
 }
