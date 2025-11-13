@@ -1,4 +1,8 @@
+import 'dart:math';
+
 import 'package:equatable/equatable.dart';
+import '../services/generators/test_data_generator.dart';
+import 'classification_models.dart';
 import 'distribution_parameters.dart';
 
 /// {@template bayesian_classifier}
@@ -69,4 +73,162 @@ class BayesianClassifier with EquatableMixin {
 
   @override
   List<Object?> get props => [class1, class2, p1, p2, class1Name, class2Name];
+}
+
+extension BayesianClassifierAsyncAnalysis on BayesianClassifier {
+  /// Находит точки пересечения графиков p(ωᵢ)·fᵢ(x)
+  List<double> findIntersectionPoints() {
+    final intersections = <double>[];
+    final minX = _getAnalysisMinX();
+    final maxX = _getAnalysisMaxX();
+    const steps = 1000;
+    
+    double? prevDiff;
+    
+    for (int i = 0; i <= steps; i++) {
+      final x = minX + (maxX - minX) * i / steps;
+      final density1 = _calculateDensity(class1, x) * p1;
+      final density2 = _calculateDensity(class2, x) * p2;
+      final diff = density1 - density2;
+      
+      // Ищем смену знака разности
+      if (prevDiff != null && prevDiff * diff <= 0) {
+        // Уточняем точку пересечения методом бисекции
+        final intersection = _refineIntersection(x - (maxX - minX) / steps, x);
+        if (intersection != null) {
+          intersections.add(intersection);
+        }
+      }
+      
+      prevDiff = diff;
+    }
+    
+    return intersections;
+  }
+  
+  /// Рассчитывает частоту ошибок для тестовой выборки 
+  Future<ClassificationResult> calculateErrorRateAsync({
+    int samplesPerClass = 1000,
+  }) async {
+    // Генерируем тестовые данные через существующие генераторы
+    final testSamples = await TestDataGenerator.generateTestData(
+      class1Params: class1,
+      class2Params: class2,
+      samplesPerClass: samplesPerClass,
+    );
+    
+    return _calculateErrorRateForSamples(testSamples);
+  }
+  
+  /// Рассчитывает частоту ошибок для готовой выборки
+  ClassificationResult calculateErrorRate(List<TestSample> testSamples) {
+    return _calculateErrorRateForSamples(testSamples);
+  }
+  
+  /// Внутренний метод для расчета ошибок
+  ClassificationResult _calculateErrorRateForSamples(List<TestSample> testSamples) {
+    int correctClassifications = 0;
+    int totalSamples = testSamples.length;
+    
+    final classifiedSamples = testSamples.map((sample) {
+      final predictedClass = classifyValue(sample.value);
+      final isCorrect = predictedClass == sample.trueClass;
+      
+      if (isCorrect) correctClassifications++;
+      
+      return ClassifiedSample(
+        value: sample.value,
+        trueClass: sample.trueClass,
+        predictedClass: predictedClass,
+        isCorrect: isCorrect,
+      );
+    }).toList();
+    
+    final errorRate = (totalSamples - correctClassifications) / totalSamples;
+    
+    return ClassificationResult(
+      errorRate: errorRate,
+      correctClassifications: correctClassifications,
+      totalSamples: totalSamples,
+      classifiedSamples: classifiedSamples,
+      intersectionPoints: findIntersectionPoints(),
+    );
+  }
+  
+  /// Уточняет точку пересечения методом бисекции
+  double? _refineIntersection(double x1, double x2, {int iterations = 10}) {
+    for (int i = 0; i < iterations; i++) {
+      final mid = (x1 + x2) / 2;
+      final density1 = _calculateDensity(class1, mid) * p1;
+      final density2 = _calculateDensity(class2, mid) * p2;
+      final diff = density1 - density2;
+      
+      if (diff.abs() < 1e-10) return mid;
+      
+      final diff1 = _calculateDensity(class1, x1) * p1 - _calculateDensity(class2, x1) * p2;
+      
+      if (diff1 * diff <= 0) {
+        x2 = mid;
+      } else {
+        x1 = mid;
+      }
+    }
+    
+    return (x1 + x2) / 2;
+  }
+  
+  /// Классифицирует значение x
+  bool classifyValue(double x) {
+    final density1 = _calculateDensity(class1, x) * p1;
+    final density2 = _calculateDensity(class2, x) * p2;
+    return density1 >= density2; // true = класс 1, false = класс 2
+  }
+  
+  
+  double _calculateDensity(DistributionParameters params, double x) {
+    return switch (params) {
+      NormalParameters p => _normalDensity(x, p.m, p.sigma),
+      UniformParameters p => _uniformDensity(x, p.a, p.b),
+      _ => 0,
+    };
+  }
+  
+  double _uniformDensity(double x, double a, double b) {
+    return (x >= a && x <= b) ? 1 / (b - a) : 0;
+  }
+  
+  double _normalDensity(double x, double m, double sigma) {
+    final exponent = -0.5 * ((x - m) / sigma) * ((x - m) / sigma);
+    return (1 / (sigma * sqrt(2 * 3.1415926535))) * exp(exponent);
+  }
+  
+  double _getAnalysisMinX() {
+    final min1 = _getDistributionMin(class1);
+    final min2 = _getDistributionMin(class2);
+    return (min(min1, min2) - 1).clamp(-10.0, 0.0);
+  }
+  
+  double _getAnalysisMaxX() {
+    final max1 = _getDistributionMax(class1);
+    final max2 = _getDistributionMax(class2);
+    return (max(max1, max2) + 1).clamp(0.0, 20.0);
+  }
+  
+  double _getDistributionMin(DistributionParameters params) {
+    return switch (params) {
+      NormalParameters p => p.m - 3 * p.sigma,
+      UniformParameters p => p.a,
+      _ => 0,
+    };
+  }
+  
+  double _getDistributionMax(DistributionParameters params) {
+    return switch (params) {
+      NormalParameters p => p.m + 3 * p.sigma,
+      UniformParameters p => p.b,
+      _ => 1,
+    };
+  }
+
+  
 }
