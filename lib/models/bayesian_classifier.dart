@@ -280,4 +280,142 @@ ClassificationResult _calculateDetailedErrorRateForSamples(List<TestSample> test
     intersectionPoints: findIntersectionPoints(),
   );
 }
+
+  /// Вычисляет теоретическую вероятность ошибки через интегрирование меньшей плотности
+  double calculateTheoreticalError() {
+    final intersections = findIntersectionPoints();
+    final sortedIntersections = [...intersections]..sort();
+    
+    // Добавляем границы интегрирования
+    final integrationBounds = [
+      _getAnalysisMinX(),
+      ...sortedIntersections,
+      _getAnalysisMaxX()
+    ];
+    
+    double totalError = 0.0;
+    
+    // Интегрируем на каждом интервале
+    for (int i = 0; i < integrationBounds.length - 1; i++) {
+      final a = integrationBounds[i];
+      final b = integrationBounds[i + 1];
+      
+      // Определяем, какая плотность меньше на этом интервале
+      final midpoint = (a + b) / 2;
+      final density1 = _calculateDensity(class1, midpoint) * p1;
+      final density2 = _calculateDensity(class2, midpoint) * p2;
+      
+      final minDensity = min(density1, density2);
+      
+      // Интегрируем меньшую плотность на интервале
+      final intervalError = _integrateFunction(a, b, (x) => minDensity);
+      totalError += intervalError;
+    }
+    
+    return totalError;
+  }
+
+  /// Более точный метод интегрирования меньшей плотности
+  double calculateTheoreticalErrorPrecise({int stepsPerInterval = 100}) {
+    final intersections = findIntersectionPoints();
+    final sortedIntersections = [...intersections]..sort();
+    
+    final integrationBounds = [
+      _getAnalysisMinX(),
+      ...sortedIntersections,
+      _getAnalysisMaxX()
+    ];
+    
+    double totalError = 0.0;
+    
+    for (int i = 0; i < integrationBounds.length - 1; i++) {
+      final a = integrationBounds[i];
+      final b = integrationBounds[i + 1];
+      
+      // Используем метод Симпсона для более точного интегрирования
+      totalError += _simpsonIntegration(a, b, (x) {
+        final density1 = _calculateDensity(class1, x) * p1;
+        final density2 = _calculateDensity(class2, x) * p2;
+        return min(density1, density2);
+      }, stepsPerInterval);
+    }
+    
+    return totalError;
+  }
+
+  /// Метод Симпсона для численного интегрирования
+  double _simpsonIntegration(double a, double b, double Function(double) f, int n) {
+    if (n % 2 != 0) n++; // n должно быть четным
+    
+    final h = (b - a) / n;
+    double sum = f(a) + f(b);
+    
+    for (int i = 1; i < n; i++) {
+      final x = a + i * h;
+      final coefficient = (i % 2 == 0) ? 2.0 : 4.0;
+      sum += coefficient * f(x);
+    }
+    
+    return sum * h / 3;
+  }
+
+  /// Простое интегрирование методом прямоугольников
+  double _integrateFunction(double a, double b, double Function(double) f, {int steps = 100}) {
+    final stepSize = (b - a) / steps;
+    double sum = 0.0;
+    
+    for (int i = 0; i < steps; i++) {
+      final x = a + i * stepSize;
+      sum += f(x) * stepSize;
+    }
+    
+    return sum;
+  }
+
+  /// Полная информация о теоретической ошибке
+  TheoreticalErrorInfo calculateTheoreticalErrorInfo() {
+    final intersections = findIntersectionPoints();
+    final sortedIntersections = [...intersections]..sort();
+    
+    final integrationBounds = [
+      _getAnalysisMinX(),
+      ...sortedIntersections,
+      _getAnalysisMaxX()
+    ];
+    
+    final intervalErrors = <ErrorInterval>[];
+    double totalError = 0.0;
+    
+    for (int i = 0; i < integrationBounds.length - 1; i++) {
+      final a = integrationBounds[i];
+      final b = integrationBounds[i + 1];
+      
+      final intervalError = _simpsonIntegration(a, b, (x) {
+        final density1 = _calculateDensity(class1, x) * p1;
+        final density2 = _calculateDensity(class2, x) * p2;
+        return min(density1, density2);
+      }, 100);
+      
+      // Определяем, какой класс "проигрывает" на этом интервале
+      final midpoint = (a + b) / 2;
+      final density1 = _calculateDensity(class1, midpoint) * p1;
+      final density2 = _calculateDensity(class2, midpoint) * p2;
+      final losingClass = density1 < density2 ? class1Name : class2Name;
+      
+      intervalErrors.add(ErrorInterval(
+        start: a,
+        end: b,
+        error: intervalError,
+        losingClass: losingClass,
+      ));
+      
+      totalError += intervalError;
+    }
+    
+    return TheoreticalErrorInfo(
+      totalError: totalError,
+      intervals: intervalErrors,
+      intersectionPoints: intersections,
+    );
+  }
 }

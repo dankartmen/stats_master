@@ -26,12 +26,14 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
   bool _isTesting = false;
   ClassificationResult? _testResult;
   List<double> _intersectionPoints = [];
+  TheoreticalErrorInfo? _theoreticalErrorInfo;
 
   @override
   void initState() {
     super.initState();
     // Вычисляем точки пересечения при инициализации
     _intersectionPoints = widget.classifier.findIntersectionPoints();
+    _calculateTheoreticalError();
   }
 
   @override
@@ -97,6 +99,12 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
               ),
             ),
             
+            // Теоретическая ошибка
+            if (_theoreticalErrorInfo != null) ...[
+              _buildTheoreticalErrorInfo(),
+              const SizedBox(height: 12),
+            ],
+
             if (_isTesting) ...[
               const SizedBox(height: 16),
               const Column(
@@ -133,6 +141,244 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTheoreticalErrorInfo() {
+    final info = _theoreticalErrorInfo!;
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'Теоретическая вероятность ошибки',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildTheoreticalStat('Ошибка', '${(info.totalError * 100).toStringAsFixed(2)}%'),
+              _buildTheoreticalStat('Правильно', '${(info.correctProbability * 100).toStringAsFixed(2)}%'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: _showTheoreticalErrorDetails,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.blue,
+              side: const BorderSide(color: Colors.blue),
+            ),
+            child: const Text(
+              'Детали расчета',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTheoreticalStat(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showTheoreticalErrorDetails() {
+    if (_theoreticalErrorInfo == null) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Детали теоретического расчета ошибки',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              _buildErrorCalculationExplanation(),
+              const SizedBox(height: 20),
+              _buildErrorIntervalsTable(),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Закрыть'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorCalculationExplanation() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Метод расчета:',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text('• Область интегрирования разбивается на интервалы точками пересечения'),
+          Text('• На каждом интервале вычисляется интеграл от меньшей из плотностей:'),
+          Text('  min(p(ω₁)·f₁(x), p(ω₂)·f₂(x))'),
+          Text('• Сумма интегралов дает общую вероятность ошибки'),
+          Text('• Метод Симпсона с 100 шагами на интервал'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorIntervalsTable() {
+    final info = _theoreticalErrorInfo!;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Вклад интервалов в общую ошибку:',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Table(
+          border: TableBorder.all(),
+          columnWidths: const {
+            0: FixedColumnWidth(80),
+            1: FixedColumnWidth(80),
+            2: FixedColumnWidth(80),
+            3: FixedColumnWidth(100),
+            4: FixedColumnWidth(80),
+          },
+          children: [
+            const TableRow(
+              children: [
+                TableCell(child: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Center(child: Text('Начало', style: TextStyle(fontWeight: FontWeight.bold))),
+                )),
+                TableCell(child: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Center(child: Text('Конец', style: TextStyle(fontWeight: FontWeight.bold))),
+                )),
+                TableCell(child: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Center(child: Text('Ошибка', style: TextStyle(fontWeight: FontWeight.bold))),
+                )),
+                TableCell(child: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Center(child: Text('Проигрывающий класс', style: TextStyle(fontWeight: FontWeight.bold))),
+                )),
+                TableCell(child: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Center(child: Text('Вклад %', style: TextStyle(fontWeight: FontWeight.bold))),
+                )),
+              ],
+            ),
+            for (final interval in info.intervals)
+              TableRow(
+                children: [
+                  TableCell(child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Center(child: Text(interval.start.toStringAsFixed(2))),
+                  )),
+                  TableCell(child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Center(child: Text(interval.end.toStringAsFixed(2))),
+                  )),
+                  TableCell(child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Center(child: Text(interval.error.toStringAsFixed(4))),
+                  )),
+                  TableCell(child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Center(
+                      child: Text(
+                        interval.losingClass,
+                        style: TextStyle(
+                          color: interval.losingClass == widget.classifier.class1Name 
+                              ? Colors.blue : Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  )),
+                  TableCell(child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Center(
+                      child: Text(
+                        '${interval.errorPercentage(info.totalError).toStringAsFixed(1)}%',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  )),
+                ],
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          color: Colors.blue[50],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Общая вероятность ошибки:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                '${(info.totalError * 100).toStringAsFixed(2)}%',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -231,6 +477,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
           classifier: widget.classifier,
           sample: sample,
           intersectionPoints: _intersectionPoints,
+          theoreticalErrorInfo: _theoreticalErrorInfo,
         ),
       ),
     );
@@ -703,7 +950,13 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     );
   }
 
-  
+  void _calculateTheoreticalError() {
+    try {
+      _theoreticalErrorInfo = widget.classifier.calculateTheoreticalErrorInfo();
+    } catch (error) {
+      debugPrint('Ошибка при расчете теоретической ошибки: $error');
+    }
+  }
 
   Widget _buildTestSummary(ClassificationResult result) {
     return Container(

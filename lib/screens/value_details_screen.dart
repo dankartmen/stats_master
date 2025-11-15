@@ -9,13 +9,17 @@ class ValueDetailsScreen extends StatelessWidget {
   final BayesianClassifier classifier;
   final DetailedClassifiedSample sample;
   final List<double> intersectionPoints;
-
+  final theoreticalErrorInfo;
+  
   const ValueDetailsScreen({
     super.key,
     required this.classifier,
     required this.sample,
-    required this.intersectionPoints,
+    required this.intersectionPoints, 
+    this.theoreticalErrorInfo,
   });
+  
+  
 
   @override
   Widget build(BuildContext context) {
@@ -334,6 +338,34 @@ class ValueDetailsScreen extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
+            // Теоретическая вероятность ошибки для контекста
+            if (theoreticalErrorInfo != null) ...[
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Теоретическая ошибка: ',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    Text(
+                      '${(theoreticalErrorInfo!.totalError * 100).toStringAsFixed(2)}%',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Table(

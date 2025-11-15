@@ -77,3 +77,46 @@ class DetailedClassifiedSample extends ClassifiedSample {
   /// Насколько уверенно классификация
   double get confidence => decisionBoundary.abs();
 }
+
+/// Информация об ошибке на одном интервале
+class ErrorInterval with EquatableMixin {
+  final double start;
+  final double end;
+  final double error;
+  final String losingClass; // Класс, который "проигрывает" на этом интервале
+  
+  const ErrorInterval({
+    required this.start,
+    required this.end,
+    required this.error,
+    required this.losingClass,
+  });
+  
+  /// Длина интервала
+  double get length => end - start;
+  
+  /// Процент от общей ошибки
+  double errorPercentage(double totalError) => (error / totalError) * 100;
+  
+  @override
+  List<Object> get props => [start, end, error, losingClass];
+}
+
+/// Полная информация о теоретической ошибке
+class TheoreticalErrorInfo with EquatableMixin {
+  final double totalError;
+  final List<ErrorInterval> intervals;
+  final List<double> intersectionPoints;
+  
+  const TheoreticalErrorInfo({
+    required this.totalError,
+    required this.intervals,
+    required this.intersectionPoints,
+  });
+  
+  /// Вероятность правильной классификации
+  double get correctProbability => 1.0 - totalError;
+  
+  @override
+  List<Object> get props => [totalError, intervals, intersectionPoints];
+}
