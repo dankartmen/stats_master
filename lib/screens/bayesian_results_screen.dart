@@ -22,495 +22,105 @@ class BayesianResultsScreen extends StatefulWidget {
   State<BayesianResultsScreen> createState() => _BayesianResultsScreenState();
 }
 
-class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
+class _BayesianResultsScreenState extends State<BayesianResultsScreen>
+    with TickerProviderStateMixin {
   bool _isTesting = false;
   ClassificationResult? _testResult;
   List<double> _intersectionPoints = [];
   TheoreticalErrorInfo? _theoreticalErrorInfo;
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
-    // Вычисляем точки пересечения при инициализации
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    )..forward();
     _intersectionPoints = widget.classifier.findIntersectionPoints();
     _calculateTheoreticalError();
   }
 
   @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Результаты классификации'),
+        elevation: 0,
+        backgroundColor: theme.colorScheme.surface,
+        foregroundColor: theme.colorScheme.onSurface,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _buildClassifierInfo(),
-            const SizedBox(height: 20),
-            _buildDensityChart(),
-            const SizedBox(height: 20),
-            _buildDecisionRule(),
-            const SizedBox(height: 20),
-            _buildTestResults(),
-            const SizedBox(height: 20), // Добавляем отступ снизу
-          ],
+      body: FadeTransition(
+        opacity: _animationController,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              _buildClassifierInfo(theme),
+              const SizedBox(height: 20),
+              _buildDensityChart(theme),
+              const SizedBox(height: 20),
+              _buildDecisionRule(theme),
+              const SizedBox(height: 20),
+              _buildTestResults(theme),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildTestResults() {
+  /// Строит карточку с информацией о параметрах классификатора.
+  /// Принимает:
+  /// - [theme] - текущая тема приложения для стилизации
+  Widget _buildClassifierInfo(ThemeData theme) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            const Text(
-              'Тестирование классификатора',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            
-            // Кнопка для детальной проверки
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _showClassificationDebug,
-                    child: const Text('Проверить классификацию'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _runClassificationTest,
-                    child: const Text('Полный тест'),
-                  ),
+                Icon(Icons.analytics, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Параметры классификатора',
+                  style: theme.textTheme.titleLarge,
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              '1000 samples на класс',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-            
-            // Теоретическая ошибка
-            if (_theoreticalErrorInfo != null) ...[
-              _buildTheoreticalErrorInfo(),
-              const SizedBox(height: 12),
-            ],
-
-            if (_isTesting) ...[
-              const SizedBox(height: 16),
-              const Column(
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 12),
-                  Text('Генерация данных и тестирование...'),
-                ],
-              ),
-            ],
-            
-            if (_testResult != null) ...[
-              const SizedBox(height: 16),
-              _buildTestSummary(_testResult!),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _showDetailedResults(_testResult!),
-                      child: const Text('Подробные результаты'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _showValueSelection,
-                      child: const Text('Просмотреть значения'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTheoreticalErrorInfo() {
-    final info = _theoreticalErrorInfo!;
-    
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Теоретическая вероятность ошибки',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildTheoreticalStat('Ошибка', '${(info.totalError * 100).toStringAsFixed(2)}%'),
-              _buildTheoreticalStat('Правильно', '${(info.correctProbability * 100).toStringAsFixed(2)}%'),
-            ],
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: _showTheoreticalErrorDetails,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.blue,
-              side: const BorderSide(color: Colors.blue),
-            ),
-            child: const Text(
-              'Детали расчета',
-              style: TextStyle(fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTheoreticalStat(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.blue,
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showTheoreticalErrorDetails() {
-    if (_theoreticalErrorInfo == null) return;
-    
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Детали теоретического расчета ошибки',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              _buildErrorCalculationExplanation(),
-              const SizedBox(height: 20),
-              _buildErrorIntervalsTable(),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Закрыть'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorCalculationExplanation() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Метод расчета:',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          Text('• Область интегрирования разбивается на интервалы точками пересечения'),
-          Text('• На каждом интервале вычисляется интеграл от меньшей из плотностей:'),
-          Text('  min(p(ω₁)·f₁(x), p(ω₂)·f₂(x))'),
-          Text('• Сумма интегралов дает общую вероятность ошибки'),
-          Text('• Метод Симпсона с 100 шагами на интервал'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorIntervalsTable() {
-    final info = _theoreticalErrorInfo!;
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Вклад интервалов в общую ошибку:',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Table(
-          border: TableBorder.all(),
-          columnWidths: const {
-            0: FixedColumnWidth(80),
-            1: FixedColumnWidth(80),
-            2: FixedColumnWidth(80),
-            3: FixedColumnWidth(100),
-            4: FixedColumnWidth(80),
-          },
-          children: [
-            const TableRow(
-              children: [
-                TableCell(child: Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Center(child: Text('Начало', style: TextStyle(fontWeight: FontWeight.bold))),
-                )),
-                TableCell(child: Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Center(child: Text('Конец', style: TextStyle(fontWeight: FontWeight.bold))),
-                )),
-                TableCell(child: Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Center(child: Text('Ошибка', style: TextStyle(fontWeight: FontWeight.bold))),
-                )),
-                TableCell(child: Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Center(child: Text('Проигрывающий класс', style: TextStyle(fontWeight: FontWeight.bold))),
-                )),
-                TableCell(child: Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Center(child: Text('Вклад %', style: TextStyle(fontWeight: FontWeight.bold))),
-                )),
-              ],
-            ),
-            for (final interval in info.intervals)
-              TableRow(
-                children: [
-                  TableCell(child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Center(child: Text(interval.start.toStringAsFixed(2))),
-                  )),
-                  TableCell(child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Center(child: Text(interval.end.toStringAsFixed(2))),
-                  )),
-                  TableCell(child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Center(child: Text(interval.error.toStringAsFixed(4))),
-                  )),
-                  TableCell(child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Center(
-                      child: Text(
-                        interval.losingClass,
-                        style: TextStyle(
-                          color: interval.losingClass == widget.classifier.class1Name 
-                              ? Colors.blue : Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  )),
-                  TableCell(child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Center(
-                      child: Text(
-                        '${interval.errorPercentage(info.totalError).toStringAsFixed(1)}%',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  )),
-                ],
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(12),
-          color: Colors.blue[50],
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Общая вероятность ошибки:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text(
-                '${(info.totalError * 100).toStringAsFixed(2)}%',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showValueSelection() {
-    if (_testResult == null) return;
-
-    final samples = _testResult!.classifiedSamples;
-    
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          width: 600,
-          height: 500,
-          child: Column(
-            children: [
-              const Text(
-                'Выберите значение для детального просмотра',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: samples.length,
-                  itemBuilder: (context, index) {
-                    final sample = samples[index] as DetailedClassifiedSample;
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      child: ListTile(
-                        leading: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: sample.isCorrect ? Colors.green[50] : Colors.red[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: sample.isCorrect ? Colors.green : Colors.red,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              sample.value.toStringAsFixed(2),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: sample.isCorrect ? Colors.green : Colors.red,
-                              ),
-                            ),
-                          ),
-                        ),
-                        title: Text('Значение: ${sample.value.toStringAsFixed(4)}'),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Истинный: ${sample.trueClass ? widget.classifier.class1Name : widget.classifier.class2Name}'),
-                            Text('Прогноз: ${sample.predictedClass ? widget.classifier.class1Name : widget.classifier.class2Name}'),
-                            Text(
-                              sample.isCorrect ? '✓ Правильно' : '✗ Ошибка',
-                              style: TextStyle(
-                                color: sample.isCorrect ? Colors.green : Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        trailing: const Icon(Icons.arrow_forward),
-                        onTap: () {
-                          Navigator.pop(context); // Закрываем диалог выбора
-                          _showValueDetails(sample);
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Закрыть'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Метод для показа деталей значения
-  void _showValueDetails(DetailedClassifiedSample sample) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ValueDetailsScreen(
-          classifier: widget.classifier,
-          sample: sample,
-          intersectionPoints: _intersectionPoints,
-          theoreticalErrorInfo: _theoreticalErrorInfo,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildClassifierInfo() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const Text(
-              'Параметры классификатора',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildClassInfo(widget.classifier.class1Name, widget.classifier.p1, widget.classifier.class1),
-                _buildClassInfo(widget.classifier.class2Name, widget.classifier.p2, widget.classifier.class2),
+                _buildClassInfo(theme, widget.classifier.class1Name, widget.classifier.p1, widget.classifier.class1, theme.colorScheme.primary),
+                _buildClassInfo(theme, widget.classifier.class2Name, widget.classifier.p2, widget.classifier.class2, theme.colorScheme.error),
               ],
             ),
             if (_intersectionPoints.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Точки пересечения: ${_intersectionPoints.map((x) => x.toStringAsFixed(3)).join(', ')}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                textAlign: TextAlign.center,
+                child: Text(
+                  'Точки пересечения: ${_intersectionPoints.map((x) => x.toStringAsFixed(3)).join(', ')}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
           ],
@@ -519,17 +129,35 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     );
   }
 
-  Widget _buildClassInfo(String name, double probability, DistributionParameters params) {
-    return Column(
-      children: [
-        Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        Text('P = ${probability.toStringAsFixed(3)}'),
-        const SizedBox(height: 4),
-        Text(_getParamsDescription(params), style: const TextStyle(fontSize: 12)),
-      ],
+  /// Строит информацию о классе с параметрами распределения.
+  /// Принимает:
+  /// - [theme] - текущая тема приложения
+  /// - [name] - название класса
+  /// - [probability] - априорная вероятность класса
+  /// - [params] - параметры распределения
+  /// - [color] - цвет для стилизации класса
+  Widget _buildClassInfo(ThemeData theme, String name, double probability, DistributionParameters params, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(name, style: theme.textTheme.titleMedium?.copyWith(color: color, fontWeight: FontWeight.bold)),
+          Text('P = ${probability.toStringAsFixed(3)}', style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 4),
+          Text(_getParamsDescription(params), style: theme.textTheme.bodySmall),
+        ],
+      ),
     );
   }
 
+  /// Возвращает строковое описание параметров распределения.
+  /// Принимает:
+  /// - [params] - параметры распределения
   String _getParamsDescription(DistributionParameters params) {
     return switch (params) {
       NormalParameters p => 'N(${p.m.toStringAsFixed(2)}, ${p.sigma.toStringAsFixed(2)})',
@@ -539,28 +167,32 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     };
   }
 
-  Widget _buildDensityChart() {
+  /// Строит график плотностей распределений.
+  /// Принимает:
+  /// - [theme] - текущая тема приложения для стилизации
+  Widget _buildDensityChart(ThemeData theme) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(
-        minHeight: 400,
-        maxHeight: 600,
-      ),
+      constraints: const BoxConstraints(minHeight: 400, maxHeight: 600),
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Плотности распределения p(ωᵢ)·fᵢ(x)',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  Icon(Icons.show_chart, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Плотности распределения p(ωᵢ)·fᵢ(x)',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
-              Expanded(
-                child: _buildCombinedChart(),
-              ),
+              Expanded(child: _buildCombinedChart(theme)),
               const SizedBox(height: 16),
-              _buildLegend(),
+              _buildLegend(theme),
             ],
           ),
         ),
@@ -568,22 +200,22 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     );
   }
 
-  Widget _buildCombinedChart() {
+  /// Строит комбинированный график плотностей с линиями и точками пересечения.
+  /// Принимает:
+  /// - [theme] - текущая тема приложения для цветов и стилей
+  Widget _buildCombinedChart(ThemeData theme) {
     final minX = _getMinX();
     final maxX = _getMaxX();
     final maxY = _getMaxY();
 
-    // Line for class 1 (blue)
     final class1Spots = _generateSpotsForClass(widget.classifier.class1, widget.classifier.p1);
     final class1IsCurved = widget.classifier.class1 is NormalParameters;
     final class1Fill = widget.classifier.class1 is! NormalParameters && widget.classifier.class1 is! BinomialParameters;
 
-    // Line for class 2 (red)
     final class2Spots = _generateSpotsForClass(widget.classifier.class2, widget.classifier.p2);
     final class2IsCurved = widget.classifier.class2 is NormalParameters;
     final class2Fill = widget.classifier.class2 is! NormalParameters && widget.classifier.class2 is! BinomialParameters;
 
-    // Создаем споты для точек пересечения
     final intersectionSpots = _intersectionPoints.map((x) {
       final density1 = _calculateDensity(widget.classifier.class1, x) * widget.classifier.p1;
       return FlSpot(x, density1);
@@ -591,7 +223,20 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
 
     return LineChart(
       LineChartData(
-        gridData: const FlGridData(show: true),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          horizontalInterval: maxY / 5,
+          verticalInterval: _calculateXInterval(minX, maxX),
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: theme.colorScheme.outline.withOpacity(0.3),
+            strokeWidth: 1,
+          ),
+          getDrawingVerticalLine: (value) => FlLine(
+            color: theme.colorScheme.outline.withOpacity(0.3),
+            strokeWidth: 1,
+          ),
+        ),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
@@ -603,7 +248,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
                   padding: const EdgeInsets.only(right: 4.0),
                   child: Text(
                     value.toStringAsFixed(2),
-                    style: const TextStyle(fontSize: 10),
+                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
                   ),
                 );
               },
@@ -619,50 +264,43 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Text(
                     value.toStringAsFixed(1),
-                    style: const TextStyle(fontSize: 10),
+                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
                   ),
                 );
               },
             ),
           ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         borderData: FlBorderData(show: true),
         lineBarsData: [
-          // Класс 1 (синий цвет)
           LineChartBarData(
             spots: class1Spots,
             isCurved: class1IsCurved,
-            color: Colors.blue,
+            color: theme.colorScheme.primary,
             barWidth: 2,
             isStrokeCapRound: true,
             belowBarData: class1Fill
                 ? BarAreaData(
                     show: true,
-                    color: Colors.blue.withOpacity(0.2),
+                    gradient: LinearGradient(colors: [theme.colorScheme.primary.withOpacity(0.2), Colors.transparent]),
                   )
                 : BarAreaData(show: false),
           ),
-          // Класс 2 (красный цвет)
           LineChartBarData(
             spots: class2Spots,
             isCurved: class2IsCurved,
-            color: Colors.red,
+            color: theme.colorScheme.error,
             barWidth: 2,
             isStrokeCapRound: true,
             belowBarData: class2Fill
                 ? BarAreaData(
                     show: true,
-                    color: Colors.red.withOpacity(0.2),
+                    gradient: LinearGradient(colors: [theme.colorScheme.error.withOpacity(0.2), Colors.transparent]),
                   )
                 : BarAreaData(show: false),
           ),
-          // Точки пересечения (зеленые точки)
           if (_intersectionPoints.isNotEmpty)
             LineChartBarData(
               spots: intersectionSpots,
@@ -674,7 +312,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
                 getDotPainter: (spot, percent, barData, index) {
                   return FlDotCirclePainter(
                     radius: 4,
-                    color: Colors.green,
+                    color: theme.colorScheme.tertiary,
                     strokeWidth: 2,
                     strokeColor: Colors.white,
                   );
@@ -699,7 +337,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
                 };
                 return LineTooltipItem(
                   text,
-                  const TextStyle(color: Colors.white),
+                  theme.textTheme.bodySmall!.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 );
               }).toList();
             },
@@ -709,6 +347,10 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     );
   }
 
+  /// Вычисляет интервал для осей X в графике.
+  /// Принимает:
+  /// - [minX] - минимальное значение X
+  /// - [maxX] - максимальное значение X
   double _calculateXInterval(double minX, double maxX) {
     final range = maxX - minX;
     if (range <= 5) return 0.5;
@@ -717,6 +359,10 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     return 5.0;
   }
 
+  /// Генерирует точки для графика на основе типа распределения.
+  /// Принимает:
+  /// - [params] - параметры распределения
+  /// - [probability] - априорная вероятность
   List<FlSpot> _generateSpotsForClass(DistributionParameters params, double probability) {
     if (params is NormalParameters) {
       return _generateNormalPoints(params, probability);
@@ -728,6 +374,10 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     return [];
   }
 
+  /// Генерирует точки для нормального распределения.
+  /// Принимает:
+  /// - [params] - параметры нормального распределения
+  /// - [probability] - априорная вероятность
   List<FlSpot> _generateNormalPoints(NormalParameters params, double probability) {
     final spots = <FlSpot>[];
     final minX = _getMinX();
@@ -743,6 +393,10 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     return spots;
   }
 
+  /// Генерирует точки для равномерного распределения.
+  /// Принимает:
+  /// - [params] - параметры равномерного распределения
+  /// - [probability] - априорная вероятность
   List<FlSpot> _generateUniformPoints(UniformParameters params, double probability) {
     final minX = _getMinX();
     final maxX = _getMaxX();
@@ -760,6 +414,10 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     return spots;
   }
 
+  /// Генерирует точки для биномиального распределения.
+  /// Принимает:
+  /// - [params] - параметры биномиального распределения
+  /// - [probability] - априорная вероятность
   List<FlSpot> _generateBinomialPoints(BinomialParameters params, double probability) {
     final spots = <FlSpot>[];
     final minX = max(0.0, _getMinX());
@@ -770,19 +428,21 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
       final density = _binomialProbability(params.n, params.p, k) * probability;
       spots.add(FlSpot(x, density));
       
-      // Добавляем точки для создания ступенчатого графика
       if (k < params.n) {
         spots.add(FlSpot(x + 0.999, density));
       }
     }
     
-    // Добавляем граничные точки
     spots.insert(0, FlSpot(minX, 0));
     spots.add(FlSpot(maxX, 0));
     
     return spots;
   }
 
+  /// Вычисляет плотность для заданного распределения в точке x.
+  /// Принимает:
+  /// - [params] - параметры распределения
+  /// - [x] - значение точки
   double _calculateDensity(DistributionParameters params, double x) {
     return switch (params) {
       NormalParameters p => _normalDensity(x, p.m, p.sigma),
@@ -792,15 +452,30 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     };
   }
 
+  /// Вычисляет плотность равномерного распределения.
+  /// Принимает:
+  /// - [x] - значение точки
+  /// - [a] - нижняя граница
+  /// - [b] - верхняя граница
   double _uniformDensity(double x, double a, double b) {
     return (x >= a && x <= b) ? 1 / (b - a) : 0;
   }
 
+  /// Вычисляет плотность нормального распределения.
+  /// Принимает:
+  /// - [x] - значение точки
+  /// - [m] - математическое ожидание
+  /// - [sigma] - стандартное отклонение
   double _normalDensity(double x, double m, double sigma) {
     final exponent = -0.5 * pow((x - m) / sigma, 2);
     return (1 / (sigma * sqrt(2 * 3.1415926535))) * exp(exponent);
   }
 
+  /// Вычисляет вероятность биномиального распределения.
+  /// Принимает:
+  /// - [n] - количество испытаний
+  /// - [p] - вероятность успеха
+  /// - [k] - количество успехов
   double _binomialProbability(int n, double p, int k) {
     if (k < 0 || k > n) return 0.0;
     if (p == 0.0) return (k == 0) ? 1.0 : 0.0; 
@@ -810,6 +485,10 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     return (coefficient * pow(p, k) * pow(1 - p, n - k)).toDouble();
   }
 
+  /// Вычисляет биномиальный коэффициент.
+  /// Принимает:
+  /// - [n] - общее количество
+  /// - [k] - выбираемое количество
   int _binomialCoefficient(int n, int k) {
     if (k < 0 || k > n) return 0;
     if (k == 0 || k == n) return 1;
@@ -825,18 +504,23 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     return result;
   }
 
+  /// Вычисляет минимальное значение X для графика.
   double _getMinX() {
     final min1 = _getDistributionMin(widget.classifier.class1);
     final min2 = _getDistributionMin(widget.classifier.class2);
     return (min(min1, min2) - 1).clamp(-5.0, 0.0);
   }
 
+  /// Вычисляет максимальное значение X для графика.
   double _getMaxX() {
     final max1 = _getDistributionMax(widget.classifier.class1);
     final max2 = _getDistributionMax(widget.classifier.class2);
     return (max(max1, max2) + 1).clamp(0.0, 50.0);
   }
 
+  /// Вычисляет минимальное значение для распределения.
+  /// Принимает:
+  /// - [params] - параметры распределения
   double _getDistributionMin(DistributionParameters params) {
     return switch (params) {
       NormalParameters p => p.m - 3 * p.sigma,
@@ -846,6 +530,9 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     };
   }
 
+  /// Вычисляет максимальное значение для распределения.
+  /// Принимает:
+  /// - [params] - параметры распределения
   double _getDistributionMax(DistributionParameters params) {
     return switch (params) {
       NormalParameters p => p.m + 3 * p.sigma,
@@ -855,6 +542,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     };
   }
 
+  /// Вычисляет максимальное значение Y для графика.
   double _getMaxY() {
     double maxY = 0;
     const steps = 100;
@@ -868,33 +556,38 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
       maxY = max(maxY, max(density1, density2));
     }
     
-    return max(maxY * 1.2, 0.1); // Добавляем 20% отступа, минимум 0.1
+    return max(maxY * 1.2, 0.1);
   }
 
-  Widget _buildLegend() {
+  /// Строит легенду для графика плотностей.
+  /// Принимает:
+  /// - [theme] - текущая тема приложения
+  Widget _buildLegend(ThemeData theme) {
     final legendItems = <Widget>[
-      _buildLegendItem(widget.classifier.class1Name, Colors.blue),
+      _buildLegendItem(theme, widget.classifier.class1Name, theme.colorScheme.primary),
       const SizedBox(width: 16),
-      _buildLegendItem(widget.classifier.class2Name, Colors.red),
+      _buildLegendItem(theme, widget.classifier.class2Name, theme.colorScheme.error),
     ];
 
     if (_intersectionPoints.isNotEmpty) {
       legendItems.addAll([
         const SizedBox(width: 16),
-        _buildLegendItem('Точки пересечения', Colors.green),
+        _buildLegendItem(theme, 'Точки пересечения', theme.colorScheme.tertiary),
       ]);
     }
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: legendItems,
-      ),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: legendItems),
     );
   }
 
-  Widget _buildLegendItem(String text, Color color) {
+  /// Строит элемент легенды.
+  /// Принимает:
+  /// - [theme] - текущая тема
+  /// - [text] - текст элемента
+  /// - [color] - цвет элемента
+  Widget _buildLegendItem(ThemeData theme, String text, Color color) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -907,40 +600,52 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
           ),
         ),
         const SizedBox(width: 6),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 12),
-        ),
+        Text(text, style: theme.textTheme.bodySmall),
       ],
     );
   }
 
-  Widget _buildDecisionRule() {
+  /// Строит карточку с правилом классификации.
+  /// Принимает:
+  /// - [theme] - текущая тема приложения
+  Widget _buildDecisionRule(ThemeData theme) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            const Text(
-              'Правило классификации',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Icon(Icons.rule, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Правило классификации',
+                  style: theme.textTheme.titleLarge,
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               'Если ${widget.classifier.p1.toStringAsFixed(3)}·f₁(x) ≥ ${widget.classifier.p2.toStringAsFixed(3)}·f₂(x), '
               'то объект относится к ${widget.classifier.class1Name}, иначе к ${widget.classifier.class2Name}',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14),
+              style: theme.textTheme.bodyMedium,
             ),
             if (_intersectionPoints.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Границы решений: ${_intersectionPoints.map((x) => 'x = ${x.toStringAsFixed(3)}').join(', ')}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.green,
-                  fontWeight: FontWeight.bold,
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.tertiaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Границы решений: ${_intersectionPoints.map((x) => 'x = ${x.toStringAsFixed(3)}').join(', ')}',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onTertiaryContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -950,6 +655,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     );
   }
 
+  /// Вычисляет теоретическую ошибку классификатора.
   void _calculateTheoreticalError() {
     try {
       _theoreticalErrorInfo = widget.classifier.calculateTheoreticalErrorInfo();
@@ -958,29 +664,156 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     }
   }
 
-  Widget _buildTestSummary(ClassificationResult result) {
+  /// Строит карточку с результатами тестирования.
+  /// Принимает:
+  /// - [theme] - текущая тема приложения
+  Widget _buildTestResults(ThemeData theme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(Icons.assignment, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Тестирование классификатора',
+                  style: theme.textTheme.titleLarge,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showClassificationDebug,
+                    icon: const Icon(Icons.search),
+                    label: const Text('Проверить классификацию'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _runClassificationTest,
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('Полный тест'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '1000 samples на класс',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            
+            if (_theoreticalErrorInfo != null) ...[
+              _buildTheoreticalErrorInfo(theme),
+              const SizedBox(height: 16),
+            ],
+
+            if (_isTesting) ...[
+              const SizedBox(height: 16),
+              Column(
+                children: [
+                  CircularProgressIndicator(color: theme.colorScheme.primary),
+                  const SizedBox(height: 12),
+                  Text('Генерация данных и тестирование...', style: theme.textTheme.bodyMedium),
+                ],
+              ),
+            ],
+            
+            if (_testResult != null) ...[
+              const SizedBox(height: 16),
+              _buildTestSummary(theme, _testResult!),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showDetailedResults(_testResult!),
+                      icon: const Icon(Icons.table_chart),
+                      label: const Text('Подробные результаты'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _showValueSelection,
+                      icon: const Icon(Icons.visibility),
+                      label: const Text('Просмотреть значения'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Строит информацию о теоретической ошибке.
+  /// Принимает:
+  /// - [theme] - текущая тема приложения
+  Widget _buildTheoreticalErrorInfo(ThemeData theme) {
+    final info = _theoreticalErrorInfo!;
+    
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _getErrorRateColor(result.errorRate),
-        borderRadius: BorderRadius.circular(8),
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.primary),
       ),
       child: Column(
         children: [
-          Text(
-            'Частота ошибок: ${(result.errorRate * 100).toStringAsFixed(2)}%',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+          Row(
+            children: [
+              Icon(Icons.calculate, color: theme.colorScheme.onPrimaryContainer),
+              const SizedBox(width: 8),
+              Text(
+                'Теоретическая вероятность ошибки',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Правильно классифицировано: ${result.correctClassifications}/${result.totalSamples}',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.white,
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildTheoreticalStat(theme, 'Ошибка', '${(info.totalError * 100).toStringAsFixed(2)}%'),
+              _buildTheoreticalStat(theme, 'Правильно', '${(info.correctProbability * 100).toStringAsFixed(2)}%'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _showTheoreticalErrorDetails,
+            icon: const Icon(Icons.info_outline),
+            label: const Text('Детали расчета'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: theme.colorScheme.primary,
+              side: BorderSide(color: theme.colorScheme.primary),
             ),
           ),
         ],
@@ -988,12 +821,359 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     );
   }
 
-  Color _getErrorRateColor(double errorRate) {
-    if (errorRate < 0.05) return Colors.green;
-    if (errorRate < 0.15) return Colors.orange;
-    return Colors.red;
+  /// Строит статистику теоретической ошибки.
+  /// Принимает:
+  /// - [theme] - текущая тема
+  /// - [label] - метка статистики
+  /// - [value] - значение статистики
+  Widget _buildTheoreticalStat(ThemeData theme, String label, String value) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onPrimaryContainer.withOpacity(0.7)),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.onPrimaryContainer,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
   }
 
+  /// Показывает диалоговое окно с деталями теоретической ошибки.
+  void _showTheoreticalErrorDetails() {
+    if (_theoreticalErrorInfo == null) return;
+    
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.error_outline, color: theme.colorScheme.error),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Детали теоретического расчета ошибки',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildErrorCalculationExplanation(theme),
+              const SizedBox(height: 20),
+              _buildErrorIntervalsTable(theme),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                  label: const Text('Закрыть'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Строит объяснение метода расчета ошибки.
+  /// Принимает:
+  /// - [theme] - текущая тема
+  Widget _buildErrorCalculationExplanation(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Метод расчета:',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text('• Область интегрирования разбивается на интервалы точками пересечения'),
+          const Text('• На каждом интервале вычисляется интеграл от меньшей из плотностей:'),
+          const Text('  min(p(ω₁)·f₁(x), p(ω₂)·f₂(x))'),
+          const Text('• Сумма интегралов дает общую вероятность ошибки'),
+          const Text('• Метод Симпсона с 100 шагами на интервал'),
+        ],
+      ),
+    );
+  }
+
+  /// Строит таблицу интервалов ошибки.
+  /// Принимает:
+  /// - [theme] - текущая тема
+  Widget _buildErrorIntervalsTable(ThemeData theme) {
+    final info = _theoreticalErrorInfo!;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Вклад интервалов в общую ошибку:',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Table(
+            border: TableBorder.all(color: theme.colorScheme.outline),
+            columnWidths: const {
+              0: FixedColumnWidth(80),
+              1: FixedColumnWidth(80),
+              2: FixedColumnWidth(80),
+              3: FixedColumnWidth(100),
+              4: FixedColumnWidth(80),
+            },
+            children: [
+              TableRow(
+                decoration: BoxDecoration(color: theme.colorScheme.surfaceVariant),
+                children: [
+                  _buildTableCell(theme, 'Начало'),
+                  _buildTableCell(theme, 'Конец'),
+                  _buildTableCell(theme, 'Ошибка'),
+                  _buildTableCell(theme, 'Проигрывающий класс'),
+                  _buildTableCell(theme, 'Вклад %'),
+                ],
+              ),
+              for (final interval in info.intervals)
+                TableRow(
+                  children: [
+                    _buildTableCell(theme, interval.start.toStringAsFixed(2)),
+                    _buildTableCell(theme, interval.end.toStringAsFixed(2)),
+                    _buildTableCell(theme, interval.error.toStringAsFixed(4)),
+                    _buildTableCell(theme, interval.losingClass, color: interval.losingClass == widget.classifier.class1Name ? theme.colorScheme.primary : theme.colorScheme.error),
+                    _buildTableCell(theme, '${interval.errorPercentage(info.totalError).toStringAsFixed(1)}%', fontWeight: FontWeight.bold),
+                  ],
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Общая вероятность ошибки:',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                '${(info.totalError * 100).toStringAsFixed(2)}%',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Строит ячейку таблицы.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [text] - текст
+  /// - [color] - цвет (опционально)
+  /// - [fontWeight] - жирность (опционально)
+  Widget _buildTableCell(ThemeData theme, String text, {Color? color, FontWeight? fontWeight}) {
+    return TableCell(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Center(
+          child: Text(
+            text,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: color,
+              fontWeight: fontWeight,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Показывает диалог выбора значения для просмотра.
+  void _showValueSelection() {
+    if (_testResult == null) return;
+
+    final samples = _testResult!.classifiedSamples;
+    
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          width: 600,
+          height: 500,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.list_alt, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Выберите значение для детального просмотра',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: samples.length,
+                  itemBuilder: (context, index) {
+                    final sample = samples[index] as DetailedClassifiedSample;
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: sample.isCorrect ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: sample.isCorrect ? Colors.green : Colors.red,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              sample.value.toStringAsFixed(2),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: sample.isCorrect ? Colors.green : Colors.red,
+                              ),
+                            ),
+                          ),
+                        ),
+                        title: Text('Значение: ${sample.value.toStringAsFixed(4)}', style: theme.textTheme.bodyMedium),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Истинный: ${sample.trueClass ? widget.classifier.class1Name : widget.classifier.class2Name}'),
+                            Text('Прогноз: ${sample.predictedClass ? widget.classifier.class1Name : widget.classifier.class2Name}'),
+                            Text(
+                              sample.isCorrect ? '✓ Правильно' : '✗ Ошибка',
+                              style: TextStyle(
+                                color: sample.isCorrect ? Colors.green : Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        trailing: Icon(Icons.arrow_forward, color: theme.colorScheme.primary),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showValueDetails(sample);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                  label: const Text('Закрыть'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Показывает экран деталей значения.
+  /// Принимает:
+  /// - [sample] - классифицированный сэмпл
+  void _showValueDetails(DetailedClassifiedSample sample) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ValueDetailsScreen(
+          classifier: widget.classifier,
+          sample: sample,
+          intersectionPoints: _intersectionPoints,
+          theoreticalErrorInfo: _theoreticalErrorInfo,
+        ),
+      ),
+    );
+  }
+
+  /// Строит сводку результатов теста.
+  /// Принимает:
+  /// - [theme] - текущая тема
+  /// - [result] - результат классификации
+  Widget _buildTestSummary(ThemeData theme, ClassificationResult result) {
+    final errorColor = _getErrorRateColor(result.errorRate, theme);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: errorColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Частота ошибок: ${(result.errorRate * 100).toStringAsFixed(2)}%',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Правильно классифицировано: ${result.correctClassifications}/${result.totalSamples}',
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Определяет цвет для частоты ошибок.
+  /// Принимает:
+  /// - [errorRate] - частота ошибок
+  /// - [theme] - тема
+  Color _getErrorRateColor(double errorRate, ThemeData theme) {
+    if (errorRate < 0.05) return theme.colorScheme.primary;
+    if (errorRate < 0.15) return theme.colorScheme.secondary;
+    return theme.colorScheme.error;
+  }
+
+  /// Запускает асинхронный тест классификации.
   Future<void> _runClassificationTest() async {
     setState(() {
       _isTesting = true;
@@ -1005,13 +1185,18 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
         samplesPerClass: 200,
       );
       
-      setState(() {
-        _testResult = result;
-      });
+      if (mounted) {
+        setState(() {
+          _testResult = result;
+        });
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка при тестировании: $error')),
+          SnackBar(
+            content: Text('Ошибка при тестировании: $error', style: Theme.of(context).textTheme.bodyMedium),
+            backgroundColor: Theme.of(context).colorScheme.errorContainer,
+          ),
         );
       }
     } finally {
@@ -1023,32 +1208,44 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     }
   }
 
+  /// Показывает диалог с детальными результатами теста.
+  /// Принимает:
+  /// - [result] - результат классификации
   void _showDetailedResults(ClassificationResult result) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Детальные результаты тестирования',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  Icon(Icons.analytics_outlined, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Детальные результаты тестирования',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
-              _buildConfusionMatrix(result),
+              _buildConfusionMatrix(theme, result),
               const SizedBox(height: 20),
-              _buildClassStatistics(result),
+              _buildClassStatistics(theme, result),
               const SizedBox(height: 20),
-              _buildIntersectionInfo(result),
+              _buildIntersectionInfo(theme, result),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Закрыть'),
+                  icon: const Icon(Icons.close),
+                  label: const Text('Закрыть'),
                 ),
               ),
             ],
@@ -1058,7 +1255,11 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     );
   }
 
-  Widget _buildConfusionMatrix(ClassificationResult result) {
+  /// Строит матрицу ошибок.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [result] - результат
+  Widget _buildConfusionMatrix(ThemeData theme, ClassificationResult result) {
     int truePositive = result.classifiedSamples
         .where((s) => s.trueClass && s.predictedClass)
         .length;
@@ -1075,143 +1276,84 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Матрица ошибок:', 
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('Матрица ошибок:', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        Table(
-          border: TableBorder.all(),
-          columnWidths: const {
-            0: FixedColumnWidth(100),
-            1: FixedColumnWidth(80),
-            2: FixedColumnWidth(80),
-          },
-          children: [
-            TableRow(children: [
-              const TableCell(child: SizedBox()),
-              TableCell(
-                child: Container(
-                  color: Colors.grey[200],
-                  padding: const EdgeInsets.all(8),
-                  child: const Center(
-                    child: Text('К1', 
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ),
-              TableCell(
-                child: Container(
-                  color: Colors.grey[200],
-                  padding: const EdgeInsets.all(8),
-                  child: const Center(
-                    child: Text('К2', 
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ),
-            ]),
-            TableRow(children: [
-              TableCell(
-                child: Container(
-                  color: Colors.grey[200],
-                  padding: const EdgeInsets.all(8),
-                  child: const Center(
-                    child: Text('К1', 
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ),
-              TableCell(
-                child: Container(
-                  color: Colors.green[100],
-                  padding: const EdgeInsets.all(8),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Text('$truePositive', 
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Text('TP', style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
-                        )),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              TableCell(
-                child: Container(
-                  color: Colors.red[100],
-                  padding: const EdgeInsets.all(8),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Text('$falseNegative', 
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Text('FN', style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
-                        )),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ]),
-            TableRow(children: [
-              TableCell(
-                child: Container(
-                  color: Colors.grey[200],
-                  padding: const EdgeInsets.all(8),
-                  child: const Center(
-                    child: Text('К2', 
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ),
-              TableCell(
-                child: Container(
-                  color: Colors.red[100],
-                  padding: const EdgeInsets.all(8),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Text('$falsePositive', 
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Text('FP', style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
-                        )),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              TableCell(
-                child: Container(
-                  color: Colors.green[100],
-                  padding: const EdgeInsets.all(8),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Text('$trueNegative', 
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Text('TN', style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
-                        )),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ]),
-          ],
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Table(
+            border: TableBorder.all(color: theme.colorScheme.outline),
+            columnWidths: const {
+              0: FixedColumnWidth(100),
+              1: FixedColumnWidth(80),
+              2: FixedColumnWidth(80),
+            },
+            children: [
+              TableRow(children: [
+                const TableCell(child: SizedBox()),
+                _buildHeaderCell(theme, 'К1'),
+                _buildHeaderCell(theme, 'К2'),
+              ]),
+              TableRow(children: [
+                _buildHeaderCell(theme, 'К1'),
+                _buildMatrixCell(theme, truePositive, 'TP', Colors.green),
+                _buildMatrixCell(theme, falseNegative, 'FN', Colors.red),
+              ]),
+              TableRow(children: [
+                _buildHeaderCell(theme, 'К2'),
+                _buildMatrixCell(theme, falsePositive, 'FP', Colors.red),
+                _buildMatrixCell(theme, trueNegative, 'TN', Colors.green),
+              ]),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildClassStatistics(ClassificationResult result) {
+  /// Строит заголовочную ячейку матрицы.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [text] - текст
+  Widget _buildHeaderCell(ThemeData theme, String text) {
+    return TableCell(
+      child: Container(
+        color: theme.colorScheme.surfaceVariant,
+        padding: const EdgeInsets.all(8),
+        child: Center(
+          child: Text(text, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+        ),
+      ),
+    );
+  }
+
+  /// Строит ячейку матрицы.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [value] - значение
+  /// - [label] - метка
+  /// - [color] - цвет
+  Widget _buildMatrixCell(ThemeData theme, int value, String label, Color color) {
+    return TableCell(
+      child: Container(
+        color: color.withOpacity(0.1),
+        padding: const EdgeInsets.all(8),
+        child: Center(
+          child: Column(
+            children: [
+              Text('$value', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Строит статистику по классам.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [result] - результат
+  Widget _buildClassStatistics(ThemeData theme, ClassificationResult result) {
     int class1Correct = result.classifiedSamples
         .where((s) => s.trueClass && s.isCorrect)
         .length;
@@ -1232,71 +1374,69 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Статистика по классам:', 
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('Статистика по классам:', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        _buildClassAccuracy(
-          widget.classifier.class1Name, 
-          class1Correct, 
-          class1Total, 
-          class1Accuracy.toDouble()
-        ),
+        _buildClassAccuracy(theme, widget.classifier.class1Name, class1Correct, class1Total, class1Accuracy.toDouble()),
         const SizedBox(height: 8),
-        _buildClassAccuracy(
-          widget.classifier.class2Name, 
-          class2Correct, 
-          class2Total, 
-          class2Accuracy.toDouble()
-        ),
+        _buildClassAccuracy(theme, widget.classifier.class2Name, class2Correct, class2Total, class2Accuracy.toDouble()),
       ],
     );
   }
 
-  Widget _buildClassAccuracy(String className, int correct, int total, double accuracy) {
+  /// Строит точность класса.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [className] - название класса
+  /// - [correct] - количество правильных
+  /// - [total] - общее количество
+  /// - [accuracy] - точность
+  Widget _buildClassAccuracy(ThemeData theme, String className, int correct, int total, double accuracy) {
+    final color = accuracy > 0.8 ? theme.colorScheme.primary : accuracy > 0.6 ? theme.colorScheme.secondary : theme.colorScheme.error;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('$className: $correct/$total (${(accuracy * 100).toStringAsFixed(1)}%)'),
+        Text('$className: $correct/$total (${(accuracy * 100).toStringAsFixed(1)}%)', style: theme.textTheme.bodyMedium),
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: accuracy,
-          backgroundColor: Colors.grey[300],
-          color: accuracy > 0.8 ? Colors.green : 
-                 accuracy > 0.6 ? Colors.orange : Colors.red,
+          backgroundColor: theme.colorScheme.surfaceVariant,
+          color: color,
+          borderRadius: BorderRadius.circular(4),
         ),
       ],
     );
   }
 
-  Widget _buildIntersectionInfo(ClassificationResult result) {
+  /// Строит информацию о границах решений.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [result] - результат
+  Widget _buildIntersectionInfo(ThemeData theme, ClassificationResult result) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Границы решений:', 
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('Границы решений:', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         if (result.intersectionPoints.isEmpty)
-          const Text('Границы не найдены', style: TextStyle(color: Colors.grey)),
+          Text('Границы не найдены', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error)),
         for (final point in result.intersectionPoints)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: Text('x = ${point.toStringAsFixed(4)}', 
-                style: const TextStyle(fontFamily: 'Monospace')),
+            child: Text('x = ${point.toStringAsFixed(4)}', style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace')),
           ),
       ],
     );
   }
 
-  /// Показывает детальную проверку классификации для нескольких тестовых значений
+  /// Показывает детальную проверку классификации для нескольких тестовых значений.
   void _showClassificationDebug() {
-    // Генерируем несколько тестовых значений вручную для демонстрации
     final testSamples = <TestSample>[
-      TestSample(value: 2.5, trueClass: false), // Должен быть класс 2 (нормальный)
-      TestSample(value: 3.5, trueClass: true),  // Должен быть класс 1 (равномерный)
-      TestSample(value: 4.0, trueClass: true),  // Должен быть класс 1 (равномерный)
-      TestSample(value: 4.5, trueClass: true),  // Должен быть класс 1 (равномерный)
-      TestSample(value: 5.5, trueClass: false), // Должен быть класс 2 (нормальный)
-      TestSample(value: 6.0, trueClass: false), // Должен быть класс 2 (нормальный)
+      TestSample(value: 2.5, trueClass: false),
+      TestSample(value: 3.5, trueClass: true),
+      TestSample(value: 4.0, trueClass: true),
+      TestSample(value: 4.5, trueClass: true),
+      TestSample(value: 5.5, trueClass: false),
+      TestSample(value: 6.0, trueClass: false),
     ];
 
     final debugResults = <ClassificationDebugResult>[];
@@ -1304,14 +1444,11 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     for (final sample in testSamples) {
       final x = sample.value;
       
-      // Вычисляем плотности для обоих классов
       final density1 = _calculateDensity(widget.classifier.class1, x) * widget.classifier.p1;
       final density2 = _calculateDensity(widget.classifier.class2, x) * widget.classifier.p2;
       
-      // Классифицируем
       final predictedClass = density1 >= density2;
       
-      // Определяем результат
       final isCorrect = predictedClass == sample.trueClass;
       
       debugResults.add(ClassificationDebugResult(
@@ -1325,30 +1462,38 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
       ));
     }
 
-    // Показываем диалог с детальной информацией
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Детальная проверка классификации',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  Icon(Icons.bug_report, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Детальная проверка классификации',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
-              ..._buildDebugResults(debugResults),
+              ..._buildDebugResults(theme, debugResults),
               const SizedBox(height: 20),
-              _buildDebugSummary(debugResults),
+              _buildDebugSummary(theme, debugResults),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Закрыть'),
+                  icon: const Icon(Icons.close),
+                  label: const Text('Закрыть'),
                 ),
               ),
             ],
@@ -1358,24 +1503,38 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     );
   }
 
-  List<Widget> _buildDebugResults(List<ClassificationDebugResult> results) {
-    return results.map((result) => _buildDebugResultCard(result)).toList();
+  /// Строит список результатов отладки.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [results] - результаты отладки
+  List<Widget> _buildDebugResults(ThemeData theme, List<ClassificationDebugResult> results) {
+    return results.map((result) => _buildDebugResultCard(theme, result)).toList();
   }
 
-  Widget _buildDebugResultCard(ClassificationDebugResult result) {
+  /// Строит карточку результата отладки.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [result] - результат отладки
+  Widget _buildDebugResultCard(ThemeData theme, ClassificationDebugResult result) {
+    final cardColor = result.isCorrect ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1);
+    final borderColor = result.isCorrect ? Colors.green : Colors.red;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: borderColor),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Заголовок с значением и результатом
             Row(
               children: [
                 Text(
                   'x = ${result.value.toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 Container(
@@ -1395,9 +1554,8 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             
-            // Информация о плотностях
             Table(
               columnWidths: const {
                 0: FixedColumnWidth(120),
@@ -1406,9 +1564,9 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
               },
               children: [
                 TableRow(children: [
-                  const TableCell(child: Text('Параметр', style: TextStyle(fontWeight: FontWeight.bold))),
-                  TableCell(child: Text(widget.classifier.class1Name, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue))),
-                  TableCell(child: Text(widget.classifier.class2Name, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red))),
+                  TableCell(child: Text('Параметр', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold))),
+                  TableCell(child: Text(widget.classifier.class1Name, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold))),
+                  TableCell(child: Text(widget.classifier.class2Name, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.error, fontWeight: FontWeight.bold))),
                 ]),
                 TableRow(children: [
                   const TableCell(child: Text('p(ωᵢ)·fᵢ(x)')),
@@ -1417,31 +1575,29 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
                 ]),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             
-            // Правило принятия решения
             Text(
               'Правило: ${result.decisionRule}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 4),
             
-            // Результат классификации
             Row(
               children: [
-                const Text('Результат: '),
+                Text('Результат: ', style: theme.textTheme.bodyMedium),
                 Text(
                   'Истинный класс: ${result.trueClass ? widget.classifier.class1Name : widget.classifier.class2Name}',
                   style: TextStyle(
-                    color: result.trueClass ? Colors.blue : Colors.red,
+                    color: result.trueClass ? theme.colorScheme.primary : theme.colorScheme.error,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const Text(' → '),
+                Text(' → ', style: theme.textTheme.bodyMedium),
                 Text(
                   'Предсказанный: ${result.predictedClass ? widget.classifier.class1Name : widget.classifier.class2Name}',
                   style: TextStyle(
-                    color: result.predictedClass ? Colors.blue : Colors.red,
+                    color: result.predictedClass ? theme.colorScheme.primary : theme.colorScheme.error,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1453,49 +1609,49 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen> {
     );
   }
 
-  Widget _buildDebugSummary(List<ClassificationDebugResult> results) {
+  /// Строит сводку отладки.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [results] - результаты
+  Widget _buildDebugSummary(ThemeData theme, List<ClassificationDebugResult> results) {
     final correctCount = results.where((r) => r.isCorrect).length;
     final totalCount = results.length;
     final accuracy = correctCount / totalCount;
 
+    final summaryColor = accuracy > 0.8 ? theme.colorScheme.primaryContainer : accuracy > 0.6 ? theme.colorScheme.secondaryContainer : theme.colorScheme.errorContainer;
+    final textColor = accuracy > 0.8 ? theme.colorScheme.onPrimaryContainer : accuracy > 0.6 ? theme.colorScheme.onSecondaryContainer : theme.colorScheme.onErrorContainer;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: summaryColor,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Сводка проверки:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
-          Text('Правильно классифицировано: $correctCount/$totalCount'),
-          Text('Точность: ${(accuracy * 100).toStringAsFixed(1)}%'),
+          Text('Правильно классифицировано: $correctCount/$totalCount', style: theme.textTheme.bodyMedium?.copyWith(color: textColor)),
+          Text('Точность: ${(accuracy * 100).toStringAsFixed(1)}%', style: theme.textTheme.bodyMedium?.copyWith(color: textColor)),
           const SizedBox(height: 8),
           LinearProgressIndicator(
             value: accuracy,
-            backgroundColor: Colors.grey[300],
-            color: accuracy > 0.8 ? Colors.green : 
-                  accuracy > 0.6 ? Colors.orange : Colors.red,
+            backgroundColor: textColor.withOpacity(0.3),
+            color: textColor,
+            borderRadius: BorderRadius.circular(4),
           ),
         ],
       ),
     );
   }
-
-
-
-
-
-
-  
-
-
 }
-
 
 class ClassificationDebugResult {
   final double value;

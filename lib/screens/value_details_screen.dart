@@ -5,69 +5,88 @@ import '../models/bayesian_classifier.dart';
 import '../models/classification_models.dart';
 import '../models/distribution_parameters.dart';
 
+/// Экран деталей классификации конкретного значения.
 class ValueDetailsScreen extends StatelessWidget {
   final BayesianClassifier classifier;
   final DetailedClassifiedSample sample;
   final List<double> intersectionPoints;
-  final theoreticalErrorInfo;
-  
+  final TheoreticalErrorInfo? theoreticalErrorInfo;
+
   const ValueDetailsScreen({
     super.key,
     required this.classifier,
     required this.sample,
-    required this.intersectionPoints, 
+    required this.intersectionPoints,
     this.theoreticalErrorInfo,
   });
-  
-  
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Детали классификации значения'),
+        elevation: 0,
+        backgroundColor: theme.colorScheme.surface,
+        foregroundColor: theme.colorScheme.onSurface,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            _buildValueInfo(),
+            _buildValueInfo(theme),
             const SizedBox(height: 20),
-            _buildDetailedChart(),
+            _buildDetailedChart(theme),
             const SizedBox(height: 20),
-            _buildClassificationInfo(),
-            const SizedBox(height: 20), // Добавляем отступ снизу для прокрутки
+            _buildClassificationInfo(theme),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildValueInfo() {
+  /// Строит информацию о значении.
+  /// Принимает:
+  /// - [theme] - текущая тема
+  Widget _buildValueInfo(ThemeData theme) {
+    final trueClassColor = sample.trueClass ? theme.colorScheme.primary : theme.colorScheme.error;
+    final predictedClassColor = sample.predictedClass ? theme.colorScheme.primary : theme.colorScheme.error;
+    final resultColor = sample.isCorrect ? Colors.green : Colors.red;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            Text(
-              'Значение: ${sample.value.toStringAsFixed(4)}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Icon(Icons.location_on, color: theme.colorScheme.primary, size: 32),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Значение: ${sample.value.toStringAsFixed(4)}',
+                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildInfoItem('Истинный класс', 
-                      sample.trueClass ? classifier.class1Name : classifier.class2Name),
+                  _buildInfoItem(theme, 'Истинный класс', sample.trueClass ? classifier.class1Name : classifier.class2Name, trueClassColor),
                   const SizedBox(width: 20),
-                  _buildInfoItem('Прогнозируемый класс', 
-                      sample.predictedClass ? classifier.class1Name : classifier.class2Name),
+                  _buildInfoItem(theme, 'Прогнозируемый класс', sample.predictedClass ? classifier.class1Name : classifier.class2Name, predictedClassColor),
                   const SizedBox(width: 20),
-                  _buildInfoItem('Результат', 
-                      sample.isCorrect ? 'Правильно' : 'Ошибка',
-                      color: sample.isCorrect ? Colors.green : Colors.red),
+                  _buildInfoItem(theme, 'Результат', sample.isCorrect ? 'Правильно' : 'Ошибка', resultColor),
                 ],
               ),
             ),
@@ -77,49 +96,65 @@ class ValueDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoItem(String label, String value, {Color? color}) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: color,
+  /// Строит элемент информации.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [label] - метка
+  /// - [value] - значение
+  /// - [color] - цвет
+  Widget _buildInfoItem(ThemeData theme, String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildDetailedChart() {
+  /// Строит детальный график с положением значения.
+  /// Принимает:
+  /// - [theme] - тема
+  Widget _buildDetailedChart(ThemeData theme) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(
-        minHeight: 400,
-        maxHeight: 600,
-      ),
+      constraints: const BoxConstraints(minHeight: 400, maxHeight: 600),
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Положение значения на графике плотностей',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+              Row(
+                children: [
+                  Icon(Icons.analytics, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Положение значения на графике плотностей',
+                      style: theme.textTheme.titleLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
-              Expanded(
-                child: _buildValueChart(),
-              ),
+              Expanded(child: _buildValueChart(theme)),
               const SizedBox(height: 16),
-              _buildChartLegend(),
+              _buildChartLegend(theme),
             ],
           ),
         ),
@@ -127,7 +162,10 @@ class ValueDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildValueChart() {
+  /// Строит график значения.
+  /// Принимает:
+  /// - [theme] - тема
+  Widget _buildValueChart(ThemeData theme) {
     final minX = _getMinX();
     final maxX = _getMaxX();
     final maxY = _getMaxY();
@@ -135,13 +173,25 @@ class ValueDetailsScreen extends StatelessWidget {
     final class1Spots = _generateSpotsForClass(classifier.class1, classifier.p1);
     final class2Spots = _generateSpotsForClass(classifier.class2, classifier.p2);
     
-    // Точка для текущего значения
     final valueSpot = FlSpot(sample.value, 0);
     final valueDensitySpot = FlSpot(sample.value, max(sample.density1, sample.density2));
 
     return LineChart(
       LineChartData(
-        gridData: const FlGridData(show: true),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          horizontalInterval: maxY / 5,
+          verticalInterval: _calculateXInterval(minX, maxX),
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: theme.colorScheme.outline.withOpacity(0.3),
+            strokeWidth: 1,
+          ),
+          getDrawingVerticalLine: (value) => FlLine(
+            color: theme.colorScheme.outline.withOpacity(0.3),
+            strokeWidth: 1,
+          ),
+        ),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
@@ -153,7 +203,7 @@ class ValueDetailsScreen extends StatelessWidget {
                   padding: const EdgeInsets.only(right: 4.0),
                   child: Text(
                     value.toStringAsFixed(2),
-                    style: const TextStyle(fontSize: 10),
+                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
                   ),
                 );
               },
@@ -169,7 +219,7 @@ class ValueDetailsScreen extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Text(
                     value.toStringAsFixed(1),
-                    style: const TextStyle(fontSize: 10),
+                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
                   ),
                 );
               },
@@ -180,23 +230,20 @@ class ValueDetailsScreen extends StatelessWidget {
         ),
         borderData: FlBorderData(show: true),
         lineBarsData: [
-          // Класс 1 (синий)
           LineChartBarData(
             spots: class1Spots,
             isCurved: classifier.class1 is NormalParameters,
-            color: Colors.blue.withOpacity(0.6),
+            color: theme.colorScheme.primary.withOpacity(0.6),
             barWidth: 2,
             isStrokeCapRound: true,
           ),
-          // Класс 2 (красный)
           LineChartBarData(
             spots: class2Spots,
             isCurved: classifier.class2 is NormalParameters,
-            color: Colors.red.withOpacity(0.6),
+            color: theme.colorScheme.error.withOpacity(0.6),
             barWidth: 2,
             isStrokeCapRound: true,
           ),
-          // Пунктирная линия от значения
           LineChartBarData(
             spots: [valueSpot, valueDensitySpot],
             isCurved: false,
@@ -205,7 +252,6 @@ class ValueDetailsScreen extends StatelessWidget {
             dashArray: [5, 5],
             dotData: const FlDotData(show: false),
           ),
-          // Точка значения на оси X
           LineChartBarData(
             spots: [valueSpot],
             isCurved: false,
@@ -223,7 +269,6 @@ class ValueDetailsScreen extends StatelessWidget {
               },
             ),
           ),
-          // Точка на графике плотности
           LineChartBarData(
             spots: [valueDensitySpot],
             isCurved: false,
@@ -234,7 +279,7 @@ class ValueDetailsScreen extends StatelessWidget {
               getDotPainter: (spot, percent, barData, index) {
                 return FlDotCirclePainter(
                   radius: 5,
-                  color: sample.favorsClass1 ? Colors.blue : Colors.red,
+                  color: sample.favorsClass1 ? theme.colorScheme.primary : theme.colorScheme.error,
                   strokeWidth: 2,
                   strokeColor: Colors.white,
                 );
@@ -257,10 +302,10 @@ class ValueDetailsScreen extends StatelessWidget {
                 switch (touchedSpot.barIndex) {
                   case 0:
                     text = '${classifier.class1Name}: ${touchedSpot.y.toStringAsFixed(4)}';
-                    color = Colors.blue;
+                    color = theme.colorScheme.primary;
                   case 1:
                     text = '${classifier.class2Name}: ${touchedSpot.y.toStringAsFixed(4)}';
-                    color = Colors.red;
+                    color = theme.colorScheme.error;
                   case 2:
                     text = 'Значение: x=${touchedSpot.x.toStringAsFixed(3)}';
                     color = Colors.green;
@@ -271,7 +316,7 @@ class ValueDetailsScreen extends StatelessWidget {
                     final density = touchedSpot.y;
                     final favoredClass = sample.favorsClass1 ? classifier.class1Name : classifier.class2Name;
                     text = 'Плотность: ${density.toStringAsFixed(4)}\nВ пользу: $favoredClass';
-                    color = sample.favorsClass1 ? Colors.blue : Colors.red;
+                    color = sample.favorsClass1 ? theme.colorScheme.primary : theme.colorScheme.error;
                   default:
                     text = '${touchedSpot.y.toStringAsFixed(4)}';
                     color = Colors.grey;
@@ -279,7 +324,7 @@ class ValueDetailsScreen extends StatelessWidget {
                 
                 return LineTooltipItem(
                   text,
-                  TextStyle(color: color, fontWeight: FontWeight.bold),
+                  theme.textTheme.bodySmall!.copyWith(color: color, fontWeight: FontWeight.bold),
                 );
               }).toList();
             },
@@ -289,23 +334,31 @@ class ValueDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildChartLegend() {
+  /// Строит легенду графика.
+  /// Принимает:
+  /// - [theme] - тема
+  Widget _buildChartLegend(ThemeData theme) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildLegendItem(classifier.class1Name, Colors.blue),
+          _buildLegendItem(theme, classifier.class1Name, theme.colorScheme.primary),
           const SizedBox(width: 16),
-          _buildLegendItem(classifier.class2Name, Colors.red),
+          _buildLegendItem(theme, classifier.class2Name, theme.colorScheme.error),
           const SizedBox(width: 16),
-          _buildLegendItem('Текущее значение', Colors.green),
+          _buildLegendItem(theme, 'Текущее значение', Colors.green),
         ],
       ),
     );
   }
 
-  Widget _buildLegendItem(String text, Color color) {
+  /// Строит элемент легенды.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [text] - текст
+  /// - [color] - цвет
+  Widget _buildLegendItem(ThemeData theme, String text, Color color) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -318,53 +371,57 @@ class ValueDetailsScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 12),
-        ),
+        Text(text, style: theme.textTheme.bodySmall),
       ],
     );
   }
 
-  Widget _buildClassificationInfo() {
+  /// Строит информацию о классификации.
+  /// Принимает:
+  /// - [theme] - тема
+  Widget _buildClassificationInfo(ThemeData theme) {
+    final favoredColor = sample.favorsClass1 ? theme.colorScheme.primaryContainer : theme.colorScheme.errorContainer;
+    final favoredTextColor = sample.favorsClass1 ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onErrorContainer;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            const Text(
-              'Информация о классификации',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
+            Row(
+              children: [
+                Icon(Icons.info_outline, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Информация о классификации',
+                  style: theme.textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            // Теоретическая вероятность ошибки для контекста
+            const SizedBox(height: 16),
             if (theoreticalErrorInfo != null) ...[
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(6),
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Теоретическая ошибка: ',
-                      style: TextStyle(fontSize: 12),
-                    ),
+                    Icon(Icons.calculate, size: 16, color: theme.colorScheme.onPrimaryContainer),
+                    const SizedBox(width: 8),
                     Text(
-                      '${(theoreticalErrorInfo!.totalError * 100).toStringAsFixed(2)}%',
-                      style: const TextStyle(
-                        fontSize: 12,
+                      'Теоретическая ошибка: ${(theoreticalErrorInfo!.totalError * 100).toStringAsFixed(2)}%',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
             ],
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -374,52 +431,66 @@ class ValueDetailsScreen extends StatelessWidget {
                   1: FixedColumnWidth(120),
                 },
                 children: [
-                  _buildTableRow('p(ω₁)·f₁(x)', sample.density1.toStringAsFixed(6)),
-                  _buildTableRow('p(ω₂)·f₂(x)', sample.density2.toStringAsFixed(6)),
-                  _buildTableRow(
-                    'Разность', 
-                    sample.decisionBoundary.toStringAsFixed(6),
-                    color: sample.decisionBoundary >= 0 ? Colors.green : Colors.red,
-                  ),
-                  _buildTableRow(
-                    'Уверенность', 
-                    '${(sample.confidence * 100).toStringAsFixed(2)}%',
-                    color: sample.confidence > 0.1 ? Colors.green : Colors.orange,
-                  ),
+                  _buildTableRow(theme, 'p(ω₁)·f₁(x)', sample.density1.toStringAsFixed(6)),
+                  _buildTableRow(theme, 'p(ω₂)·f₂(x)', sample.density2.toStringAsFixed(6)),
+                  _buildTableRow(theme, 'Разность', sample.decisionBoundary.toStringAsFixed(6), color: sample.decisionBoundary >= 0 ? theme.colorScheme.primary : theme.colorScheme.error),
+                  _buildTableRow(theme, 'Уверенность', '${(sample.confidence * 100).toStringAsFixed(2)}%', color: sample.confidence > 0.1 ? theme.colorScheme.primary : theme.colorScheme.secondary),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              sample.favorsClass1 
-                  ? '✓ Значение классифицировано в пользу ${classifier.class1Name}'
-                  : '✓ Значение классифицировано в пользу ${classifier.class2Name}',
-              style: TextStyle(
-                color: sample.favorsClass1 ? Colors.blue : Colors.red,
-                fontWeight: FontWeight.bold,
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: favoredColor,
+                borderRadius: BorderRadius.circular(8),
               ),
-              textAlign: TextAlign.center,
-            ),
-            if (!sample.isCorrect) ...[
-              const SizedBox(height: 8),
-              Text(
-                '⚠ Ошибка классификации: истинный класс отличается от прогнозируемого',
-                style: TextStyle(
-                  color: Colors.orange[700],
+              child: Text(
+                sample.favorsClass1 
+                    ? '✓ Значение классифицировано в пользу ${classifier.class1Name}'
+                    : '✓ Значение классифицировано в пользу ${classifier.class2Name}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: favoredTextColor,
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
               ),
+            ),
+            if (!sample.isCorrect) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning, color: theme.colorScheme.onError, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '⚠ Ошибка классификации: истинный класс отличается от прогнозируемого',
+                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onError, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
             if (intersectionPoints.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Границы решений: ${intersectionPoints.map((x) => 'x = ${x.toStringAsFixed(3)}').join(', ')}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                textAlign: TextAlign.center,
+                child: Text(
+                  'Границы решений: ${intersectionPoints.map((x) => 'x = ${x.toStringAsFixed(3)}').join(', ')}',
+                  style: theme.textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
           ],
@@ -428,21 +499,27 @@ class ValueDetailsScreen extends StatelessWidget {
     );
   }
 
-  TableRow _buildTableRow(String label, String value, {Color? color}) {
+  /// Строит строку таблицы.
+  /// Принимает:
+  /// - [theme] - тема
+  /// - [label] - метка
+  /// - [value] - значение
+  /// - [color] - цвет (опционально)
+  TableRow _buildTableRow(ThemeData theme, String label, String value, {Color? color}) {
     return TableRow(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Text(
             label, 
-            style: const TextStyle(fontWeight: FontWeight.w500)
+            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)
           ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Text(
             value,
-            style: TextStyle(
+            style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: color,
               fontSize: 12,
@@ -453,7 +530,10 @@ class ValueDetailsScreen extends StatelessWidget {
     );
   }
 
-  // Вспомогательные методы для графика (аналогичные BayesianResultsScreen)
+  /// Генерирует точки для графика на основе типа распределения.
+  /// Принимает:
+  /// - [params] - параметры распределения
+  /// - [probability] - априорная вероятность
   List<FlSpot> _generateSpotsForClass(DistributionParameters params, double probability) {
     if (params is NormalParameters) {
       return _generateNormalPoints(params, probability);
@@ -465,6 +545,10 @@ class ValueDetailsScreen extends StatelessWidget {
     return [];
   }
 
+  /// Генерирует точки для нормального распределения.
+  /// Принимает:
+  /// - [params] - параметры нормального распределения
+  /// - [probability] - априорная вероятность
   List<FlSpot> _generateNormalPoints(NormalParameters params, double probability) {
     final spots = <FlSpot>[];
     final minX = _getMinX();
@@ -480,6 +564,10 @@ class ValueDetailsScreen extends StatelessWidget {
     return spots;
   }
 
+  /// Генерирует точки для равномерного распределения.
+  /// Принимает:
+  /// - [params] - параметры равномерного распределения
+  /// - [probability] - априорная вероятность
   List<FlSpot> _generateUniformPoints(UniformParameters params, double probability) {
     final minX = _getMinX();
     final maxX = _getMaxX();
@@ -495,6 +583,10 @@ class ValueDetailsScreen extends StatelessWidget {
     ];
   }
 
+  /// Генерирует точки для биномиального распределения.
+  /// Принимает:
+  /// - [params] - параметры биномиального распределения
+  /// - [probability] - априорная вероятность
   List<FlSpot> _generateBinomialPoints(BinomialParameters params, double probability) {
     final spots = <FlSpot>[];
     
@@ -514,17 +606,31 @@ class ValueDetailsScreen extends StatelessWidget {
     return spots;
   }
 
+  /// Вычисляет плотность нормального распределения.
+  /// Принимает:
+  /// - [x] - значение
+  /// - [m] - ожидание
+  /// - [sigma] - отклонение
   double _normalDensity(double x, double m, double sigma) {
     final exponent = -0.5 * pow((x - m) / sigma, 2);
     return (1 / (sigma * sqrt(2 * 3.1415926535))) * exp(exponent);
   }
 
+  /// Вычисляет вероятность биномиального распределения.
+  /// Принимает:
+  /// - [n] - испытания
+  /// - [p] - вероятность
+  /// - [k] - успехи
   double _binomialProbability(int n, double p, int k) {
     if (k < 0 || k > n) return 0.0;
     final coefficient = _binomialCoefficient(n, k);
     return (coefficient * pow(p, k) * pow(1 - p, n - k)).toDouble();
   }
 
+  /// Вычисляет биномиальный коэффициент.
+  /// Принимает:
+  /// - [n] - общее
+  /// - [k] - выбираемое
   int _binomialCoefficient(int n, int k) {
     if (k < 0 || k > n) return 0;
     if (k == 0 || k == n) return 1;
@@ -537,18 +643,23 @@ class ValueDetailsScreen extends StatelessWidget {
     return result;
   }
 
+  /// Вычисляет минимальное X.
   double _getMinX() {
     final min1 = _getDistributionMin(classifier.class1);
     final min2 = _getDistributionMin(classifier.class2);
     return (min(min1, min2) - 1).clamp(-5.0, 0.0);
   }
 
+  /// Вычисляет максимальное X.
   double _getMaxX() {
     final max1 = _getDistributionMax(classifier.class1);
     final max2 = _getDistributionMax(classifier.class2);
     return (max(max1, max2) + 1).clamp(0.0, 50.0);
   }
 
+  /// Минимальное для распределения.
+  /// Принимает:
+  /// - [params] - параметры
   double _getDistributionMin(DistributionParameters params) {
     return switch (params) {
       NormalParameters p => p.m - 3 * p.sigma,
@@ -558,6 +669,9 @@ class ValueDetailsScreen extends StatelessWidget {
     };
   }
 
+  /// Максимальное для распределения.
+  /// Принимает:
+  /// - [params] - параметры
   double _getDistributionMax(DistributionParameters params) {
     return switch (params) {
       NormalParameters p => p.m + 3 * p.sigma,
@@ -567,6 +681,7 @@ class ValueDetailsScreen extends StatelessWidget {
     };
   }
 
+  /// Максимальное Y.
   double _getMaxY() {
     double maxY = 0;
     const steps = 100;
@@ -583,6 +698,10 @@ class ValueDetailsScreen extends StatelessWidget {
     return max(maxY * 1.2, max(sample.density1, sample.density2) * 1.2);
   }
 
+  /// Плотность распределения.
+  /// Принимает:
+  /// - [params] - параметры
+  /// - [x] - значение
   double _calculateDensity(DistributionParameters params, double x) {
     return switch (params) {
       NormalParameters p => _normalDensity(x, p.m, p.sigma),
@@ -592,6 +711,10 @@ class ValueDetailsScreen extends StatelessWidget {
     };
   }
 
+  /// Интервал X.
+  /// Принимает:
+  /// - [minX] - мин
+  /// - [maxX] - макс
   double _calculateXInterval(double minX, double maxX) {
     final range = maxX - minX;
     if (range <= 5) return 0.5;
