@@ -9,7 +9,9 @@ import '../models/distribution_type.dart';
 import 'bayesian_results_screen.dart';
 
 /// {@template bayesian_classifier_screen}
-/// Экран для настройки байесовского классификатора
+/// Экран для настройки байесовского классификатора.
+/// Позволяет пользователю задать априорные вероятности, параметры распределений
+/// и названия классов для построения байесовского классификатора.
 /// {@endtemplate}
 class BayesianClassifierScreen extends StatefulWidget {
   /// {@macro bayesian_classifier_screen}
@@ -19,11 +21,21 @@ class BayesianClassifierScreen extends StatefulWidget {
   State<BayesianClassifierScreen> createState() => _BayesianClassifierScreenState();
 }
 
+/// {@template _bayesian_classifier_screen_state}
+/// Состояние экрана настройки байесовского классификатора.
+/// Управляет вводом параметров классификатора и взаимодействием с DistributionBloc.
+/// {@endtemplate}
 class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
+  /// Контроллер для ввода априорной вероятности первого класса
   final _p1Controller = TextEditingController(text: '0.5');
+
+  /// Контроллер для ввода названия первого класса
   final _class1NameController = TextEditingController(text: 'Равномерный класс');
+
+  /// Контроллер для ввода названия второго класса
   final _class2NameController = TextEditingController(text: 'Нормальный класс');
   
+  /// Текущий классификатор с заданными параметрами
   late BayesianClassifier _classifier;
 
   @override
@@ -79,6 +91,10 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
     );
   }
 
+  /// Переход к экрану результатов классификации.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
+  /// - [classifier] - настроенный классификатор
   void _navigateToResultsScreen(BuildContext context, BayesianClassifier classifier) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -87,13 +103,16 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
     );
   }
   
-  /// Обновляет контроллеры значениями из классификатора
+  /// Обновляет контроллеры значениями из классификатора.
   void _updateControllers() {
     _p1Controller.text = _classifier.p1.toString();
     _class1NameController.text = _classifier.class1Name;
     _class2NameController.text = _classifier.class2Name;
   }
 
+  /// Строит секцию для ввода априорных вероятностей.
+  /// Возвращает:
+  /// - [Widget] - карточку с полями ввода априорных вероятностей
   Widget _buildPriorProbabilities() {
     return Card(
       elevation: 4,
@@ -176,6 +195,11 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
     );
   }
 
+  /// Строит секцию параметров для указанного класса.
+  /// Принимает:
+  /// - [classNumber] - номер класса (1 или 2)
+  /// Возвращает:
+  /// - [Widget] - карточку с параметрами распределения класса
   Widget _buildClassParameters(int classNumber) {
     final isClass1 = classNumber == 1;
     final currentParams = isClass1 ? _classifier.class1 : _classifier.class2;
@@ -202,6 +226,12 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
     );
   }
 
+  /// Строит выпадающий список для выбора типа распределения.
+  /// Принимает:
+  /// - [currentParams] - текущие параметры распределения
+  /// - [isClass1] - флаг, указывающий на первый класс
+  /// Возвращает:
+  /// - [Widget] - выпадающий список с типами распределений
   Widget _buildDistributionTypeDropdown(DistributionParameters currentParams, bool isClass1) {
     return DropdownButton<DistributionType>(
       value: currentParams.type,
@@ -230,6 +260,12 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
     );
   }
 
+  /// Строит специфические поля ввода для типа распределения.
+  /// Принимает:
+  /// - [parameters] - параметры распределения
+  /// - [isClass1] - флаг, указывающий на первый класс
+  /// Возвращает:
+  /// - [Widget] - соответствующие поля ввода параметров
   Widget _buildSpecificParameters(DistributionParameters parameters, bool isClass1) {
     return switch (parameters) {
       NormalParameters p => _buildNormalParameters(p, isClass1),
@@ -238,6 +274,12 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
     };
   }
 
+  /// Строит поля ввода для нормального распределения.
+  /// Принимает:
+  /// - [parameters] - параметры нормального распределения
+  /// - [isClass1] - флаг, указывающий на первый класс
+  /// Возвращает:
+  /// - [Widget] - поля ввода математического ожидания и стандартного отклонения
   Widget _buildNormalParameters(NormalParameters parameters, bool isClass1) {
     return Column(
       children: [
@@ -284,6 +326,12 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
     );
   }
 
+  /// Строит поля ввода для равномерного распределения.
+  /// Принимает:
+  /// - [parameters] - параметры равномерного распределения
+  /// - [isClass1] - флаг, указывающий на первый класс
+  /// Возвращает:
+  /// - [Widget] - поля ввода нижней и верхней границ
   Widget _buildUniformParameters(UniformParameters parameters, bool isClass1) {
     return Column(
       children: [
@@ -330,6 +378,9 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
     );
   }
 
+  /// Строит кнопку для запуска классификации.
+  /// Возвращает:
+  /// - [Widget] - кнопку классификации с проверкой валидности
   Widget _buildClassifyButton() {
     return ElevatedButton(
       onPressed: _classifier.isValid ? () {
@@ -347,6 +398,11 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
     );
   }
 
+  /// Создает параметры распределения по умолчанию для указанного типа.
+  /// Принимает:
+  /// - [type] - тип распределения
+  /// Возвращает:
+  /// - [DistributionParameters] - параметры распределения по умолчанию
   DistributionParameters _createDefaultParameters(DistributionType type) {
     return switch (type) {
       DistributionType.normal => const NormalParameters(m: 5.0, sigma: 1),
@@ -354,6 +410,10 @@ class _BayesianClassifierScreenState extends State<BayesianClassifierScreen> {
       _ => throw ArgumentError('Unsupported distribution type'),
     };
   }
+
+  /// Строит кнопку сброса к значениям по умолчанию.
+  /// Возвращает:
+  /// - [Widget] - кнопку сброса параметров
   Widget _buildResetButton() {
     return OutlinedButton(
       onPressed: () {

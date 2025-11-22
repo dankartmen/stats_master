@@ -140,9 +140,9 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -229,11 +229,11 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
           horizontalInterval: maxY / 5,
           verticalInterval: _calculateXInterval(minX, maxX),
           getDrawingHorizontalLine: (value) => FlLine(
-            color: theme.colorScheme.outline.withOpacity(0.3),
+            color: theme.colorScheme.outline.withValues(alpha: 0.3),
             strokeWidth: 1,
           ),
           getDrawingVerticalLine: (value) => FlLine(
-            color: theme.colorScheme.outline.withOpacity(0.3),
+            color: theme.colorScheme.outline.withValues(alpha: 0.3),
             strokeWidth: 1,
           ),
         ),
@@ -284,7 +284,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
             belowBarData: class1Fill
                 ? BarAreaData(
                     show: true,
-                    gradient: LinearGradient(colors: [theme.colorScheme.primary.withOpacity(0.2), Colors.transparent]),
+                    gradient: LinearGradient(colors: [theme.colorScheme.primary.withValues(alpha: 0.2), Colors.transparent]),
                   )
                 : BarAreaData(show: false),
           ),
@@ -297,7 +297,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
             belowBarData: class2Fill
                 ? BarAreaData(
                     show: true,
-                    gradient: LinearGradient(colors: [theme.colorScheme.error.withOpacity(0.2), Colors.transparent]),
+                    gradient: LinearGradient(colors: [theme.colorScheme.error.withValues(alpha: 0.2), Colors.transparent]),
                   )
                 : BarAreaData(show: false),
           ),
@@ -333,7 +333,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
                   0 => '${widget.classifier.class1Name}: ${touchedSpot.y.toStringAsFixed(4)}',
                   1 => '${widget.classifier.class2Name}: ${touchedSpot.y.toStringAsFixed(4)}',
                   2 => 'Точка пересечения: x=${touchedSpot.x.toStringAsFixed(3)}',
-                  _ => '${touchedSpot.y.toStringAsFixed(4)}',
+                  _ => touchedSpot.y.toStringAsFixed(4),
                 };
                 return LineTooltipItem(
                   text,
@@ -718,10 +718,10 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
               ),
             ),
             
-            if (_theoreticalErrorInfo != null) ...[
-              _buildTheoreticalErrorInfo(theme),
-              const SizedBox(height: 16),
-            ],
+            // if (_theoreticalErrorInfo != null) ...[
+            //   _buildTheoreticalErrorInfo(theme),
+            //   const SizedBox(height: 16),
+            // ],
 
             if (_isTesting) ...[
               const SizedBox(height: 16),
@@ -785,37 +785,37 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              Icon(Icons.calculate, color: theme.colorScheme.onPrimaryContainer),
-              const SizedBox(width: 8),
-              Text(
-                'Теоретическая вероятность ошибки',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.onPrimaryContainer,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildTheoreticalStat(theme, 'Ошибка', '${(info.totalError * 100).toStringAsFixed(2)}%'),
-              _buildTheoreticalStat(theme, 'Правильно', '${(info.correctProbability * 100).toStringAsFixed(2)}%'),
-            ],
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _showTheoreticalErrorDetails,
-            icon: const Icon(Icons.info_outline),
-            label: const Text('Детали расчета'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: theme.colorScheme.primary,
-              side: BorderSide(color: theme.colorScheme.primary),
-            ),
-          ),
+          // Row(
+          //   children: [
+          //     Icon(Icons.calculate, color: theme.colorScheme.onPrimaryContainer),
+          //     const SizedBox(width: 8),
+          //     Text(
+          //       'Теоретическая вероятность ошибки',
+          //       style: theme.textTheme.titleMedium?.copyWith(
+          //         color: theme.colorScheme.onPrimaryContainer,
+          //         fontWeight: FontWeight.bold,
+          //       ),
+          //     ),
+          //   ],
+          // ),
+          // const SizedBox(height: 12),
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.spaceAround,
+          //   children: [
+          //     _buildTheoreticalStat(theme, 'Ошибка', '${(info.totalError * 100).toStringAsFixed(2)}%'),
+          //     _buildTheoreticalStat(theme, 'Правильно', '${(info.correctProbability * 100).toStringAsFixed(2)}%'),
+          //   ],
+          // ),
+          // const SizedBox(height: 12),
+          // OutlinedButton.icon(
+          //   onPressed: _showTheoreticalErrorDetails,
+          //   icon: const Icon(Icons.info_outline),
+          //   label: const Text('Детали расчета'),
+          //   style: OutlinedButton.styleFrom(
+          //     foregroundColor: theme.colorScheme.primary,
+          //     side: BorderSide(color: theme.colorScheme.primary),
+          //   ),
+          // ),
         ],
       ),
     );
@@ -831,7 +831,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
       children: [
         Text(
           label,
-          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onPrimaryContainer.withOpacity(0.7)),
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7)),
         ),
         const SizedBox(height: 4),
         Text(
@@ -897,7 +897,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant,
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: theme.colorScheme.outline),
       ),
@@ -946,7 +946,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
             },
             children: [
               TableRow(
-                decoration: BoxDecoration(color: theme.colorScheme.surfaceVariant),
+                decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest),
                 children: [
                   _buildTableCell(theme, 'Начало'),
                   _buildTableCell(theme, 'Конец'),
@@ -1059,7 +1059,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: sample.isCorrect ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                            color: sample.isCorrect ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: sample.isCorrect ? Colors.green : Colors.red,
@@ -1317,7 +1317,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
   Widget _buildHeaderCell(ThemeData theme, String text) {
     return TableCell(
       child: Container(
-        color: theme.colorScheme.surfaceVariant,
+        color: theme.colorScheme.surfaceContainerHighest,
         padding: const EdgeInsets.all(8),
         child: Center(
           child: Text(text, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
@@ -1335,7 +1335,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
   Widget _buildMatrixCell(ThemeData theme, int value, String label, Color color) {
     return TableCell(
       child: Container(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         padding: const EdgeInsets.all(8),
         child: Center(
           child: Column(
@@ -1399,7 +1399,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: accuracy,
-          backgroundColor: theme.colorScheme.surfaceVariant,
+          backgroundColor: theme.colorScheme.surfaceContainerHighest,
           color: color,
           borderRadius: BorderRadius.circular(4),
         ),
@@ -1516,7 +1516,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
   /// - [theme] - тема
   /// - [result] - результат отладки
   Widget _buildDebugResultCard(ThemeData theme, ClassificationDebugResult result) {
-    final cardColor = result.isCorrect ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1);
+    final cardColor = result.isCorrect ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1);
     final borderColor = result.isCorrect ? Colors.green : Colors.red;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1643,7 +1643,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
           const SizedBox(height: 8),
           LinearProgressIndicator(
             value: accuracy,
-            backgroundColor: textColor.withOpacity(0.3),
+            backgroundColor: textColor.withValues(alpha: 0.3),
             color: textColor,
             borderRadius: BorderRadius.circular(4),
           ),

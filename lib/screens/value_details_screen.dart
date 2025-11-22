@@ -5,13 +5,30 @@ import '../models/bayesian_classifier.dart';
 import '../models/classification_models.dart';
 import '../models/distribution_parameters.dart';
 
+/// {@template value_details_screen}
 /// Экран деталей классификации конкретного значения.
+/// Отображает подробную информацию о классификации, включая графики плотностей,
+/// вероятности принадлежности классам и детали принятия решения классификатором.
+/// {@endtemplate}
 class ValueDetailsScreen extends StatelessWidget {
+  /// Классификатор, использованный для классификации значения.
   final BayesianClassifier classifier;
+
+  /// Детализированная информация о классифицированном значении.
   final DetailedClassifiedSample sample;
+
+  /// Точки пересечения плотностей распределений (границы решений).
   final List<double> intersectionPoints;
+
+  /// Теоретическая информация об ошибках классификации.
   final TheoreticalErrorInfo? theoreticalErrorInfo;
 
+  /// {@macro value_details_screen}
+  /// Принимает:
+  /// - [classifier] - байесовский классификатор
+  /// - [sample] - детали классифицированного значения
+  /// - [intersectionPoints] - точки пересечения плотностей
+  /// - [theoreticalErrorInfo] - теоретическая информация об ошибках
   const ValueDetailsScreen({
     super.key,
     required this.classifier,
@@ -54,7 +71,9 @@ class ValueDetailsScreen extends StatelessWidget {
 
   /// Строит информацию о значении.
   /// Принимает:
-  /// - [theme] - текущая тема
+  /// - [theme] - текущая тема приложения
+  /// Возвращает:
+  /// - [Widget] - карточку с информацией о значении и его классификации
   Widget _buildValueInfo(ThemeData theme) {
     final trueClassColor = sample.trueClass ? theme.colorScheme.primary : theme.colorScheme.error;
     final predictedClassColor = sample.predictedClass ? theme.colorScheme.primary : theme.colorScheme.error;
@@ -98,10 +117,12 @@ class ValueDetailsScreen extends StatelessWidget {
 
   /// Строит элемент информации.
   /// Принимает:
-  /// - [theme] - тема
-  /// - [label] - метка
-  /// - [value] - значение
-  /// - [color] - цвет
+  /// - [theme] - тема приложения
+  /// - [label] - метка элемента
+  /// - [value] - значение элемента
+  /// - [color] - цвет элемента
+  /// Возвращает:
+  /// - [Widget] - контейнер с информацией
   Widget _buildInfoItem(ThemeData theme, String label, String value, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -128,7 +149,9 @@ class ValueDetailsScreen extends StatelessWidget {
 
   /// Строит детальный график с положением значения.
   /// Принимает:
-  /// - [theme] - тема
+  /// - [theme] - тема приложения
+  /// Возвращает:
+  /// - [Widget] - карточку с графиком плотностей и положением значения
   Widget _buildDetailedChart(ThemeData theme) {
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 400, maxHeight: 600),
@@ -164,7 +187,9 @@ class ValueDetailsScreen extends StatelessWidget {
 
   /// Строит график значения.
   /// Принимает:
-  /// - [theme] - тема
+  /// - [theme] - тема приложения
+  /// Возвращает:
+  /// - [Widget] - график с плотностями распределений и значением
   Widget _buildValueChart(ThemeData theme) {
     final minX = _getMinX();
     final maxX = _getMaxX();
@@ -336,7 +361,9 @@ class ValueDetailsScreen extends StatelessWidget {
 
   /// Строит легенду графика.
   /// Принимает:
-  /// - [theme] - тема
+  /// - [theme] - тема приложения
+  /// Возвращает:
+  /// - [Widget] - легенду с пояснениями цветов на графике
   Widget _buildChartLegend(ThemeData theme) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -355,9 +382,11 @@ class ValueDetailsScreen extends StatelessWidget {
 
   /// Строит элемент легенды.
   /// Принимает:
-  /// - [theme] - тема
-  /// - [text] - текст
-  /// - [color] - цвет
+  /// - [theme] - тема приложения
+  /// - [text] - текст элемента
+  /// - [color] - цвет элемента
+  /// Возвращает:
+  /// - [Widget] - элемент легенды
   Widget _buildLegendItem(ThemeData theme, String text, Color color) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -378,7 +407,9 @@ class ValueDetailsScreen extends StatelessWidget {
 
   /// Строит информацию о классификации.
   /// Принимает:
-  /// - [theme] - тема
+  /// - [theme] - тема приложения
+  /// Возвращает:
+  /// - [Widget] - карточку с детальной информацией о классификации
   Widget _buildClassificationInfo(ThemeData theme) {
     final favoredColor = sample.favorsClass1 ? theme.colorScheme.primaryContainer : theme.colorScheme.errorContainer;
     final favoredTextColor = sample.favorsClass1 ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onErrorContainer;
@@ -501,10 +532,12 @@ class ValueDetailsScreen extends StatelessWidget {
 
   /// Строит строку таблицы.
   /// Принимает:
-  /// - [theme] - тема
-  /// - [label] - метка
-  /// - [value] - значение
-  /// - [color] - цвет (опционально)
+  /// - [theme] - тема приложения
+  /// - [label] - метка строки
+  /// - [value] - значение строки
+  /// - [color] - цвет значения (опционально)
+  /// Возвращает:
+  /// - [TableRow] - строку таблицы
   TableRow _buildTableRow(ThemeData theme, String label, String value, {Color? color}) {
     return TableRow(
       children: [
@@ -534,6 +567,8 @@ class ValueDetailsScreen extends StatelessWidget {
   /// Принимает:
   /// - [params] - параметры распределения
   /// - [probability] - априорная вероятность
+  /// Возвращает:
+  /// - [List<FlSpot>] - список точек для построения графика
   List<FlSpot> _generateSpotsForClass(DistributionParameters params, double probability) {
     if (params is NormalParameters) {
       return _generateNormalPoints(params, probability);
@@ -549,6 +584,8 @@ class ValueDetailsScreen extends StatelessWidget {
   /// Принимает:
   /// - [params] - параметры нормального распределения
   /// - [probability] - априорная вероятность
+  /// Возвращает:
+  /// - [List<FlSpot>] - список точек нормального распределения
   List<FlSpot> _generateNormalPoints(NormalParameters params, double probability) {
     final spots = <FlSpot>[];
     final minX = _getMinX();
@@ -568,6 +605,8 @@ class ValueDetailsScreen extends StatelessWidget {
   /// Принимает:
   /// - [params] - параметры равномерного распределения
   /// - [probability] - априорная вероятность
+  /// Возвращает:
+  /// - [List<FlSpot>] - список точек равномерного распределения
   List<FlSpot> _generateUniformPoints(UniformParameters params, double probability) {
     final minX = _getMinX();
     final maxX = _getMaxX();
@@ -587,6 +626,8 @@ class ValueDetailsScreen extends StatelessWidget {
   /// Принимает:
   /// - [params] - параметры биномиального распределения
   /// - [probability] - априорная вероятность
+  /// Возвращает:
+  /// - [List<FlSpot>] - список точек биномиального распределения
   List<FlSpot> _generateBinomialPoints(BinomialParameters params, double probability) {
     final spots = <FlSpot>[];
     
@@ -609,8 +650,10 @@ class ValueDetailsScreen extends StatelessWidget {
   /// Вычисляет плотность нормального распределения.
   /// Принимает:
   /// - [x] - значение
-  /// - [m] - ожидание
-  /// - [sigma] - отклонение
+  /// - [m] - математическое ожидание
+  /// - [sigma] - стандартное отклонение
+  /// Возвращает:
+  /// - [double] - значение плотности в точке x
   double _normalDensity(double x, double m, double sigma) {
     final exponent = -0.5 * pow((x - m) / sigma, 2);
     return (1 / (sigma * sqrt(2 * 3.1415926535))) * exp(exponent);
@@ -618,9 +661,11 @@ class ValueDetailsScreen extends StatelessWidget {
 
   /// Вычисляет вероятность биномиального распределения.
   /// Принимает:
-  /// - [n] - испытания
-  /// - [p] - вероятность
-  /// - [k] - успехи
+  /// - [n] - количество испытаний
+  /// - [p] - вероятность успеха
+  /// - [k] - количество успехов
+  /// Возвращает:
+  /// - [double] - вероятность P(X = k)
   double _binomialProbability(int n, double p, int k) {
     if (k < 0 || k > n) return 0.0;
     final coefficient = _binomialCoefficient(n, k);
@@ -629,8 +674,10 @@ class ValueDetailsScreen extends StatelessWidget {
 
   /// Вычисляет биномиальный коэффициент.
   /// Принимает:
-  /// - [n] - общее
-  /// - [k] - выбираемое
+  /// - [n] - общее количество элементов
+  /// - [k] - количество выбираемых элементов
+  /// Возвращает:
+  /// - [int] - биномиальный коэффициент C(n, k)
   int _binomialCoefficient(int n, int k) {
     if (k < 0 || k > n) return 0;
     if (k == 0 || k == n) return 1;
@@ -643,23 +690,29 @@ class ValueDetailsScreen extends StatelessWidget {
     return result;
   }
 
-  /// Вычисляет минимальное X.
+  /// Вычисляет минимальное значение X для графика.
+  /// Возвращает:
+  /// - [double] - минимальное значение X
   double _getMinX() {
     final min1 = _getDistributionMin(classifier.class1);
     final min2 = _getDistributionMin(classifier.class2);
     return (min(min1, min2) - 1).clamp(-5.0, 0.0);
   }
 
-  /// Вычисляет максимальное X.
+  /// Вычисляет максимальное значение X для графика.
+  /// Возвращает:
+  /// - [double] - максимальное значение X
   double _getMaxX() {
     final max1 = _getDistributionMax(classifier.class1);
     final max2 = _getDistributionMax(classifier.class2);
     return (max(max1, max2) + 1).clamp(0.0, 50.0);
   }
 
-  /// Минимальное для распределения.
+  /// Вычисляет минимальное значение для распределения.
   /// Принимает:
-  /// - [params] - параметры
+  /// - [params] - параметры распределения
+  /// Возвращает:
+  /// - [double] - минимальное значение распределения
   double _getDistributionMin(DistributionParameters params) {
     return switch (params) {
       NormalParameters p => p.m - 3 * p.sigma,
@@ -669,9 +722,11 @@ class ValueDetailsScreen extends StatelessWidget {
     };
   }
 
-  /// Максимальное для распределения.
+  /// Вычисляет максимальное значение для распределения.
   /// Принимает:
-  /// - [params] - параметры
+  /// - [params] - параметры распределения
+  /// Возвращает:
+  /// - [double] - максимальное значение распределения
   double _getDistributionMax(DistributionParameters params) {
     return switch (params) {
       NormalParameters p => p.m + 3 * p.sigma,
@@ -681,7 +736,9 @@ class ValueDetailsScreen extends StatelessWidget {
     };
   }
 
-  /// Максимальное Y.
+  /// Вычисляет максимальное значение Y для графика.
+  /// Возвращает:
+  /// - [double] - максимальное значение Y
   double _getMaxY() {
     double maxY = 0;
     const steps = 100;
@@ -698,10 +755,12 @@ class ValueDetailsScreen extends StatelessWidget {
     return max(maxY * 1.2, max(sample.density1, sample.density2) * 1.2);
   }
 
-  /// Плотность распределения.
+  /// Вычисляет плотность распределения в точке x.
   /// Принимает:
-  /// - [params] - параметры
-  /// - [x] - значение
+  /// - [params] - параметры распределения
+  /// - [x] - точка, в которой вычисляется плотность
+  /// Возвращает:
+  /// - [double] - значение плотности
   double _calculateDensity(DistributionParameters params, double x) {
     return switch (params) {
       NormalParameters p => _normalDensity(x, p.m, p.sigma),
@@ -711,10 +770,12 @@ class ValueDetailsScreen extends StatelessWidget {
     };
   }
 
-  /// Интервал X.
+  /// Вычисляет интервал для оси X.
   /// Принимает:
-  /// - [minX] - мин
-  /// - [maxX] - макс
+  /// - [minX] - минимальное значение X
+  /// - [maxX] - максимальное значение X
+  /// Возвращает:
+  /// - [double] - интервал для делений оси X
   double _calculateXInterval(double minX, double maxX) {
     final range = maxX - minX;
     if (range <= 5) return 0.5;

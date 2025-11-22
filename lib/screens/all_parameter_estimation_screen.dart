@@ -11,6 +11,8 @@ import '../services/calculators/interval_estimation_calculator.dart';
 
 /// {@template all_parameter_estimation_screen}
 /// Экран отображения оценок параметров всех распределений.
+/// Показывает точечные и интервальные оценки параметров биномиального,
+/// равномерного и нормального распределений, а также доверительные интервалы.
 /// {@endtemplate}
 class AllParameterEstimationScreen extends StatelessWidget {
   /// {@macro all_parameter_estimation_screen}
@@ -54,6 +56,7 @@ class AllParameterEstimationScreen extends StatelessWidget {
   /// Строит содержимое экрана с оценками параметров.
   /// Принимает:
   /// - [estimates] - оценки параметров всех распределений
+  /// - [context] - контекст построения виджета
   /// Возвращает:
   /// - [Widget] - виджет с содержимым экрана оценок
   Widget _buildEstimationContent(AllParameterEstimates estimates, {required BuildContext context}) {
@@ -117,6 +120,7 @@ class AllParameterEstimationScreen extends StatelessWidget {
   /// - [estimate] - точечные оценки распределения
   /// - [color] - цвет акцента для карточки
   /// - [generationResult] - результат генерации для перехода
+  /// - [context] - контекст построения виджета
   /// Возвращает:
   /// - [Widget] - виджет карточки распределения
   Widget _buildDistributionEstimate(DistributionEstimate estimate, Color color, GenerationResult generationResult, {required BuildContext context}) {
@@ -563,7 +567,13 @@ class AllParameterEstimationScreen extends StatelessWidget {
     );
   }
 
-  /// Строит строку с информацией об интервале
+  /// Строит строку с информацией об интервале.
+  /// Принимает:
+  /// - [label] - метка информации
+  /// - [value] - значение информации
+  /// - [isMain] - флаг основного элемента
+  /// Возвращает:
+  /// - [Widget] - виджет строки с информацией
   Widget _buildIntervalInfoRow(String label, String value, {bool isMain = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -658,7 +668,13 @@ class AllParameterEstimationScreen extends StatelessWidget {
     );
   }
 
-  /// Строит элемент пояснения
+  /// Строит элемент пояснения.
+  /// Принимает:
+  /// - [title] - заголовок пояснения
+  /// - [description] - описание пояснения
+  /// - [color] - цвет элемента
+  /// Возвращает:
+  /// - [Widget] - виджет элемента пояснения
   Widget _buildExplanationItem(String title, String description, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),

@@ -10,6 +10,8 @@ import 'all_parameter_estimation_screen.dart';
 
 /// {@template all_parameters_screen}
 /// Экран для ввода параметров всех распределений.
+/// Позволяет пользователю задать параметры биномиального, равномерного
+/// и нормального распределений, а также размеры выборок для каждого из них.
 /// {@endtemplate}
 class AllParametersScreen extends StatefulWidget {
   /// {@macro all_parameters_screen}
@@ -19,11 +21,21 @@ class AllParametersScreen extends StatefulWidget {
   State<AllParametersScreen> createState() => _AllParametersScreenState();
 }
 
+/// {@template _all_parameters_screen_state}
+/// Состояние экрана ввода параметров всех распределений.
+/// Управляет вводом параметров распределений и взаимодействием с DistributionBloc.
+/// {@endtemplate}
 class _AllParametersScreenState extends State<AllParametersScreen> {
+  /// Контроллер для ввода размера выборки биномиального распределения
   final _binomialSampleSizeController = TextEditingController(text: '100');
+
+  /// Контроллер для ввода размера выборки равномерного распределения
   final _uniformSampleSizeController = TextEditingController(text: '200');
+
+  /// Контроллер для ввода размера выборки нормального распределения
   final _normalSampleSizeController = TextEditingController(text: '200');
 
+  /// Текущие параметры всех распределений
   late AllDistributionParameters _currentParameters;
 
   @override
@@ -124,6 +136,10 @@ class _AllParametersScreenState extends State<AllParametersScreen> {
     );
   }
 
+  /// Переход к экрану оценки параметров.
+  /// Принимает:
+  /// - [context] - контекст построения виджета
+  /// - [state] - состояние успешной оценки параметров
   void _navigateToAllEstimationScreen(BuildContext context, AllEstimationSuccess state) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -134,6 +150,15 @@ class _AllParametersScreenState extends State<AllParametersScreen> {
       ),
     );
   }
+
+  /// Строит карточку распределения.
+  /// Принимает:
+  /// - [title] - заголовок карточки
+  /// - [icon] - иконка распределения
+  /// - [color] - цвет акцента
+  /// - [children] - дочерние виджеты
+  /// Возвращает:
+  /// - [Widget] - карточку распределения
   Widget _buildDistributionCard({
     required String title,
     required IconData icon,
@@ -168,6 +193,12 @@ class _AllParametersScreenState extends State<AllParametersScreen> {
     );
   }
 
+  /// Строит поле ввода размера выборки.
+  /// Принимает:
+  /// - [controller] - контроллер текстового поля
+  /// - [label] - метка поля
+  /// Возвращает:
+  /// - [Widget] - поле ввода размера выборки
   Widget _buildSampleSizeInput({
     required TextEditingController controller,
     required String label,
@@ -188,6 +219,11 @@ class _AllParametersScreenState extends State<AllParametersScreen> {
     );
   }
 
+  /// Строит поля ввода для биномиального распределения.
+  /// Принимает:
+  /// - [parameters] - параметры биномиального распределения
+  /// Возвращает:
+  /// - [Widget] - поля ввода количества испытаний и вероятности успеха
   Widget _buildBinomialParameters(BinomialParameters parameters) {
     return Column(
       children: [
@@ -234,6 +270,11 @@ class _AllParametersScreenState extends State<AllParametersScreen> {
     );
   }
 
+  /// Строит поля ввода для равномерного распределения.
+  /// Принимает:
+  /// - [parameters] - параметры равномерного распределения
+  /// Возвращает:
+  /// - [Widget] - поля ввода нижней и верхней границ
   Widget _buildUniformParameters(UniformParameters parameters) {
     return Column(
       children: [
@@ -280,6 +321,11 @@ class _AllParametersScreenState extends State<AllParametersScreen> {
     );
   }
 
+  /// Строит поля ввода для нормального распределения.
+  /// Принимает:
+  /// - [parameters] - параметры нормального распределения
+  /// Возвращает:
+  /// - [Widget] - поля ввода математического ожидания и стандартного отклонения
   Widget _buildNormalParameters(NormalParameters parameters) {
     return Column(
       children: [
@@ -326,6 +372,9 @@ class _AllParametersScreenState extends State<AllParametersScreen> {
     );
   }
 
+  /// Строит кнопку для запуска оценки параметров.
+  /// Возвращает:
+  /// - [Widget] - кнопку оценки с индикатором загрузки
   Widget _buildEstimateButton() {
     return BlocBuilder<DistributionBloc, DistributionState>(
       builder: (context, state) {
@@ -384,6 +433,7 @@ class _AllParametersScreenState extends State<AllParametersScreen> {
     );
   }
 
+  /// Обновляет параметры в DistributionBloc.
   void _updateParameters() {
     final binomialSampleSize = int.tryParse(_binomialSampleSizeController.text);
     final uniformSampleSize = int.tryParse(_uniformSampleSizeController.text);
