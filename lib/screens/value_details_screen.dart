@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:stats_master/services/calculators/chart_data_calculator.dart';
 import '../models/bayesian_classifier.dart';
 import '../models/classification_models.dart';
 import '../models/distribution_parameters.dart';
@@ -127,9 +128,9 @@ class ValueDetailsScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -195,8 +196,8 @@ class ValueDetailsScreen extends StatelessWidget {
     final maxX = _getMaxX();
     final maxY = _getMaxY();
 
-    final class1Spots = _generateSpotsForClass(classifier.class1, classifier.p1);
-    final class2Spots = _generateSpotsForClass(classifier.class2, classifier.p2);
+    final class1Spots = ChartDataCalculator.generateSpotsForClass(classifier.class1, classifier.p1, minX, maxX);
+    final class2Spots = ChartDataCalculator.generateSpotsForClass(classifier.class2, classifier.p2, minX, maxX);
     
     final valueSpot = FlSpot(sample.value, 0);
     final valueDensitySpot = FlSpot(sample.value, max(sample.density1, sample.density2));
@@ -207,13 +208,13 @@ class ValueDetailsScreen extends StatelessWidget {
           show: true,
           drawVerticalLine: true,
           horizontalInterval: maxY / 5,
-          verticalInterval: _calculateXInterval(minX, maxX),
+          verticalInterval: ChartDataCalculator.calculateXInterval(minX, maxX),
           getDrawingHorizontalLine: (value) => FlLine(
-            color: theme.colorScheme.outline.withOpacity(0.3),
+            color: theme.colorScheme.outline.withValues(alpha: 0.3),
             strokeWidth: 1,
           ),
           getDrawingVerticalLine: (value) => FlLine(
-            color: theme.colorScheme.outline.withOpacity(0.3),
+            color: theme.colorScheme.outline.withValues(alpha: 0.3),
             strokeWidth: 1,
           ),
         ),
@@ -238,7 +239,7 @@ class ValueDetailsScreen extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 25,
-              interval: _calculateXInterval(minX, maxX),
+              interval: ChartDataCalculator.calculateXInterval(minX, maxX),
               getTitlesWidget: (value, meta) {
                 return Padding(
                   padding: const EdgeInsets.only(top: 4.0),
@@ -258,14 +259,14 @@ class ValueDetailsScreen extends StatelessWidget {
           LineChartBarData(
             spots: class1Spots,
             isCurved: classifier.class1 is NormalParameters,
-            color: theme.colorScheme.primary.withOpacity(0.6),
+            color: theme.colorScheme.primary.withValues(alpha: 0.6),
             barWidth: 2,
             isStrokeCapRound: true,
           ),
           LineChartBarData(
             spots: class2Spots,
             isCurved: classifier.class2 is NormalParameters,
-            color: theme.colorScheme.error.withOpacity(0.6),
+            color: theme.colorScheme.error.withValues(alpha: 0.6),
             barWidth: 2,
             isStrokeCapRound: true,
           ),
@@ -563,89 +564,6 @@ class ValueDetailsScreen extends StatelessWidget {
     );
   }
 
-  /// Генерирует точки для графика на основе типа распределения.
-  /// Принимает:
-  /// - [params] - параметры распределения
-  /// - [probability] - априорная вероятность
-  /// Возвращает:
-  /// - [List<FlSpot>] - список точек для построения графика
-  List<FlSpot> _generateSpotsForClass(DistributionParameters params, double probability) {
-    if (params is NormalParameters) {
-      return _generateNormalPoints(params, probability);
-    } else if (params is UniformParameters) {
-      return _generateUniformPoints(params, probability);
-    } else if (params is BinomialParameters) {
-      return _generateBinomialPoints(params, probability);
-    }
-    return [];
-  }
-
-  /// Генерирует точки для нормального распределения.
-  /// Принимает:
-  /// - [params] - параметры нормального распределения
-  /// - [probability] - априорная вероятность
-  /// Возвращает:
-  /// - [List<FlSpot>] - список точек нормального распределения
-  List<FlSpot> _generateNormalPoints(NormalParameters params, double probability) {
-    final spots = <FlSpot>[];
-    final minX = _getMinX();
-    final maxX = _getMaxX();
-    const steps = 150;
-    
-    for (int i = 0; i <= steps; i++) {
-      final x = minX + (maxX - minX) * i / steps;
-      final density = _normalDensity(x, params.m, params.sigma) * probability;
-      spots.add(FlSpot(x, density));
-    }
-    
-    return spots;
-  }
-
-  /// Генерирует точки для равномерного распределения.
-  /// Принимает:
-  /// - [params] - параметры равномерного распределения
-  /// - [probability] - априорная вероятность
-  /// Возвращает:
-  /// - [List<FlSpot>] - список точек равномерного распределения
-  List<FlSpot> _generateUniformPoints(UniformParameters params, double probability) {
-    final minX = _getMinX();
-    final maxX = _getMaxX();
-    final density = (1 / (params.b - params.a)) * probability;
-    
-    return [
-      FlSpot(minX, 0),
-      FlSpot(params.a, 0),
-      FlSpot(params.a, density),
-      FlSpot(params.b, density),
-      FlSpot(params.b, 0),
-      FlSpot(maxX, 0),
-    ];
-  }
-
-  /// Генерирует точки для биномиального распределения.
-  /// Принимает:
-  /// - [params] - параметры биномиального распределения
-  /// - [probability] - априорная вероятность
-  /// Возвращает:
-  /// - [List<FlSpot>] - список точек биномиального распределения
-  List<FlSpot> _generateBinomialPoints(BinomialParameters params, double probability) {
-    final spots = <FlSpot>[];
-    
-    for (int k = 0; k <= params.n; k++) {
-      final x = k.toDouble();
-      final density = _binomialProbability(params.n, params.p, k) * probability;
-      spots.add(FlSpot(x, density));
-      
-      if (k < params.n) {
-        spots.add(FlSpot(x + 0.999, density));
-      }
-    }
-    
-    spots.insert(0, FlSpot(_getMinX(), 0));
-    spots.add(FlSpot(_getMaxX(), 0));
-    
-    return spots;
-  }
 
   /// Вычисляет плотность нормального распределения.
   /// Принимает:
@@ -770,17 +688,4 @@ class ValueDetailsScreen extends StatelessWidget {
     };
   }
 
-  /// Вычисляет интервал для оси X.
-  /// Принимает:
-  /// - [minX] - минимальное значение X
-  /// - [maxX] - максимальное значение X
-  /// Возвращает:
-  /// - [double] - интервал для делений оси X
-  double _calculateXInterval(double minX, double maxX) {
-    final range = maxX - minX;
-    if (range <= 5) return 0.5;
-    if (range <= 10) return 1.0;
-    if (range <= 20) return 2.0;
-    return 5.0;
-  }
 }

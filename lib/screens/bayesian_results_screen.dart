@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:stats_master/services/calculators/chart_data_calculator.dart';
 import '../models/bayesian_classifier.dart';
 import '../models/classification_models.dart';
 import '../models/distribution_parameters.dart';
@@ -208,11 +209,11 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
     final maxX = _getMaxX();
     final maxY = _getMaxY();
 
-    final class1Spots = _generateSpotsForClass(widget.classifier.class1, widget.classifier.p1);
+    final class1Spots = ChartDataCalculator.generateSpotsForClass(widget.classifier.class1, widget.classifier.p1, minX, maxX);
     final class1IsCurved = widget.classifier.class1 is NormalParameters;
     final class1Fill = widget.classifier.class1 is! NormalParameters && widget.classifier.class1 is! BinomialParameters;
 
-    final class2Spots = _generateSpotsForClass(widget.classifier.class2, widget.classifier.p2);
+    final class2Spots = ChartDataCalculator.generateSpotsForClass(widget.classifier.class2, widget.classifier.p2, minX, maxX);
     final class2IsCurved = widget.classifier.class2 is NormalParameters;
     final class2Fill = widget.classifier.class2 is! NormalParameters && widget.classifier.class2 is! BinomialParameters;
 
@@ -359,85 +360,6 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
     return 5.0;
   }
 
-  /// Генерирует точки для графика на основе типа распределения.
-  /// Принимает:
-  /// - [params] - параметры распределения
-  /// - [probability] - априорная вероятность
-  List<FlSpot> _generateSpotsForClass(DistributionParameters params, double probability) {
-    if (params is NormalParameters) {
-      return _generateNormalPoints(params, probability);
-    } else if (params is UniformParameters) {
-      return _generateUniformPoints(params, probability);
-    } else if (params is BinomialParameters) {
-      return _generateBinomialPoints(params, probability);
-    }
-    return [];
-  }
-
-  /// Генерирует точки для нормального распределения.
-  /// Принимает:
-  /// - [params] - параметры нормального распределения
-  /// - [probability] - априорная вероятность
-  List<FlSpot> _generateNormalPoints(NormalParameters params, double probability) {
-    final spots = <FlSpot>[];
-    final minX = _getMinX();
-    final maxX = _getMaxX();
-    const steps = 150;
-    
-    for (int i = 0; i <= steps; i++) {
-      final x = minX + (maxX - minX) * i / steps;
-      final density = _normalDensity(x, params.m, params.sigma) * probability;
-      spots.add(FlSpot(x, density));
-    }
-    
-    return spots;
-  }
-
-  /// Генерирует точки для равномерного распределения.
-  /// Принимает:
-  /// - [params] - параметры равномерного распределения
-  /// - [probability] - априорная вероятность
-  List<FlSpot> _generateUniformPoints(UniformParameters params, double probability) {
-    final minX = _getMinX();
-    final maxX = _getMaxX();
-    final density = (1 / (params.b - params.a)) * probability;
-    
-    final spots = <FlSpot>[
-      FlSpot(minX, 0),
-      FlSpot(params.a, 0),
-      FlSpot(params.a, density),
-      FlSpot(params.b, density),
-      FlSpot(params.b, 0),
-      FlSpot(maxX, 0),
-    ];
-    
-    return spots;
-  }
-
-  /// Генерирует точки для биномиального распределения.
-  /// Принимает:
-  /// - [params] - параметры биномиального распределения
-  /// - [probability] - априорная вероятность
-  List<FlSpot> _generateBinomialPoints(BinomialParameters params, double probability) {
-    final spots = <FlSpot>[];
-    final minX = max(0.0, _getMinX());
-    final maxX = min(params.n.toDouble(), _getMaxX());
-    
-    for (int k = 0; k <= params.n; k++) {
-      final x = k.toDouble();
-      final density = _binomialProbability(params.n, params.p, k) * probability;
-      spots.add(FlSpot(x, density));
-      
-      if (k < params.n) {
-        spots.add(FlSpot(x + 0.999, density));
-      }
-    }
-    
-    spots.insert(0, FlSpot(minX, 0));
-    spots.add(FlSpot(maxX, 0));
-    
-    return spots;
-  }
 
   /// Вычисляет плотность для заданного распределения в точке x.
   /// Принимает:
@@ -658,7 +580,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
   /// Вычисляет теоретическую ошибку классификатора.
   void _calculateTheoreticalError() {
     try {
-      _theoreticalErrorInfo = widget.classifier.calculateTheoreticalErrorInfo();
+      _theoreticalErrorInfo = widget.classifier.calculateTheoreticalErrorInfoAnalytical();
     } catch (error) {
       debugPrint('Ошибка при расчете теоретической ошибки: $error');
     }
@@ -718,10 +640,11 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
               ),
             ),
             
-            // if (_theoreticalErrorInfo != null) ...[
-            //   _buildTheoreticalErrorInfo(theme),
-            //   const SizedBox(height: 16),
-            // ],
+            if (_theoreticalErrorInfo != null) ...[
+              _buildTheoreticalErrorInfo(theme),
+              const SizedBox(height: 16),
+              
+            ],
 
             if (_isTesting) ...[
               const SizedBox(height: 16),
@@ -785,37 +708,37 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
       ),
       child: Column(
         children: [
-          // Row(
-          //   children: [
-          //     Icon(Icons.calculate, color: theme.colorScheme.onPrimaryContainer),
-          //     const SizedBox(width: 8),
-          //     Text(
-          //       'Теоретическая вероятность ошибки',
-          //       style: theme.textTheme.titleMedium?.copyWith(
-          //         color: theme.colorScheme.onPrimaryContainer,
-          //         fontWeight: FontWeight.bold,
-          //       ),
-          //     ),
-          //   ],
-          // ),
-          // const SizedBox(height: 12),
-          // Row(
-          //   mainAxisAlignment: MainAxisAlignment.spaceAround,
-          //   children: [
-          //     _buildTheoreticalStat(theme, 'Ошибка', '${(info.totalError * 100).toStringAsFixed(2)}%'),
-          //     _buildTheoreticalStat(theme, 'Правильно', '${(info.correctProbability * 100).toStringAsFixed(2)}%'),
-          //   ],
-          // ),
-          // const SizedBox(height: 12),
-          // OutlinedButton.icon(
-          //   onPressed: _showTheoreticalErrorDetails,
-          //   icon: const Icon(Icons.info_outline),
-          //   label: const Text('Детали расчета'),
-          //   style: OutlinedButton.styleFrom(
-          //     foregroundColor: theme.colorScheme.primary,
-          //     side: BorderSide(color: theme.colorScheme.primary),
-          //   ),
-          // ),
+          Row(
+            children: [
+              Icon(Icons.calculate, color: theme.colorScheme.onPrimaryContainer),
+              const SizedBox(width: 8),
+              Text(
+                'Теоретическая вероятность ошибки',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildTheoreticalStat(theme, 'Ошибка', '${(info.totalError * 100).toStringAsFixed(2)}%'),
+              _buildTheoreticalStat(theme, 'Правильно', '${(info.correctProbability * 100).toStringAsFixed(2)}%'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _showTheoreticalErrorDetails,
+            icon: const Icon(Icons.info_outline),
+            label: const Text('Детали расчета'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: theme.colorScheme.primary,
+              side: BorderSide(color: theme.colorScheme.primary),
+            ),
+          ),
         ],
       ),
     );

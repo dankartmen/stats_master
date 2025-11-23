@@ -8,6 +8,7 @@ import '../blocs/distribution_bloc/distribution_event.dart';
 import '../models/distribution_parameters.dart';
 import '../models/generation_result.dart';
 import '../models/interval.dart';
+import '../services/calculators/statistical_calculator.dart';
 
 /// {@template results_screen}
 /// Экран отображения результатов генерации распределения.
@@ -170,8 +171,10 @@ class ResultsScreen extends StatelessWidget {
   /// Возвращает:
   /// - [Widget] - панель со статистическими данными
   Widget _buildStatisticsTab() {
-    final mean = generatedResult.results.map((e) => e.value).reduce((a, b) => a + b) / generatedResult.results.length;
-    final variance = generatedResult.results.map((e) => pow(e.value - mean, 2)).reduce((a, b) => a + b) / generatedResult.results.length;
+     final values = generatedResult.results.map((e) => e.value as double).toList();
+    
+    final mean = StatisticalCalculator.calculateSampleMean(values);
+    final variance = StatisticalCalculator.calculateSampleVariance(values);
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Card(
