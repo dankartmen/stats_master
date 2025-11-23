@@ -33,7 +33,7 @@ class BayesianCalculator {
   /// - [x] - аргумент функции Лапласа
   /// Возвращает:
   /// - [double] - значение функции Лапласа в точке x
-  static double _getLaplaceValue(double x) {
+  static double getLaplaceValue(double x) {
     x = x.abs();
     
     if (x >= 4.0) return 0.5;
@@ -58,9 +58,9 @@ class BayesianCalculator {
   static double _normalCDF(double x, {double mean = 0, double stdDev = 1}) {
     final z = (x - mean) / stdDev;  // Стандартизация
     if (z >= 0) {
-      return 0.5 + _getLaplaceValue(z);  // Для положительных z
+      return 0.5 + getLaplaceValue(z);  // Для положительных z
     } else {
-      return 0.5 - _getLaplaceValue(-z); // Для отрицательных z (симметрия)
+      return 0.5 - getLaplaceValue(-z); // Для отрицательных z (симметрия)
     }
   }
 
@@ -72,9 +72,9 @@ class BayesianCalculator {
   /// - [double] - значение плотности распределения в точке x
   static double calculateDensity(DistributionParameters params, double x) {
     return switch (params) {
-      NormalParameters p => _normalDensity(x, p.m, p.sigma),
-      UniformParameters p => _uniformDensity(x, p.a, p.b),
-      BinomialParameters p => _binomialProbability(p.n, p.p, x.round()),
+      NormalParameters p => normalDensity(x, p.m, p.sigma),
+      UniformParameters p => uniformDensity(x, p.a, p.b),
+      BinomialParameters p => binomialProbability(p.n, p.p, x.round()),
       _ => 0,
     };
   }
@@ -86,7 +86,7 @@ class BayesianCalculator {
   /// - [sigma] - стандартное отклонение
   /// Возвращает:
   /// - [double] - значение плотности нормального распределения
-  static double _normalDensity(double x, double m, double sigma) {
+  static double normalDensity(double x, double m, double sigma) {
     final exponent = -0.5 * pow((x - m) / sigma, 2);
     return (1 / (sigma * sqrt(2 * pi))) * exp(exponent);
   }
@@ -98,7 +98,7 @@ class BayesianCalculator {
   /// - [b] - верхняя граница распределения
   /// Возвращает:
   /// - [double] - значение плотности равномерного распределения
-  static double _uniformDensity(double x, double a, double b) {
+  static double uniformDensity(double x, double a, double b) {
     return (x >= a && x <= b) ? 1 / (b - a) : 0;
   }
 
@@ -109,7 +109,7 @@ class BayesianCalculator {
   /// - [k] - количество успехов
   /// Возвращает:
   /// - [double] - вероятность P(X = k)
-  static double _binomialProbability(int n, double p, int k) {
+  static double binomialProbability(int n, double p, int k) {
     if (k < 0 || k > n) return 0.0;
     if (p == 0.0) return (k == 0) ? 1.0 : 0.0; 
     if (p == 1.0) return (k == n) ? 1.0 : 0.0;
@@ -189,7 +189,7 @@ class BayesianCalculator {
     
     for (int k = startK; k <= endK; k++) {
       if (k >= a && k <= b) {
-        sum += _binomialProbability(n, p, k) * probability;  // Суммируем вероятности
+        sum += binomialProbability(n, p, k) * probability;  // Суммируем вероятности
       }
     }
     return sum;

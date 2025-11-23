@@ -228,8 +228,8 @@ extension BayesianClassifierAsyncAnalysis on BayesianClassifier {
   /// - [double] - значение плотности
   double _calculateDensity(DistributionParameters params, double x) {
     return switch (params) {
-      NormalParameters p => _normalDensity(x, p.m, p.sigma),
-      UniformParameters p => _uniformDensity(x, p.a, p.b),
+      NormalParameters p => BayesianCalculator.normalDensity(x, p.m, p.sigma),
+      UniformParameters p => BayesianCalculator.uniformDensity(x, p.a, p.b),
       _ => 0,
     };
   }
@@ -241,21 +241,11 @@ extension BayesianClassifierAsyncAnalysis on BayesianClassifier {
   /// - [b] - верхняя граница распределения
   /// Возвращает:
   /// - [double] - значение плотности равномерного распределения
-  double _uniformDensity(double x, double a, double b) {
+  double uniformDensity(double x, double a, double b) {
     return (x >= a && x <= b) ? 1 / (b - a) : 0;
   }
   
-  /// Вычисляет плотность нормального распределения.
-  /// Принимает:
-  /// - [x] - точка для вычисления
-  /// - [m] - математическое ожидание
-  /// - [sigma] - стандартное отклонение
-  /// Возвращает:
-  /// - [double] - значение плотности нормального распределения
-  double _normalDensity(double x, double m, double sigma) {
-    final exponent = -0.5 * ((x - m) / sigma) * ((x - m) / sigma);
-    return (1 / (sigma * sqrt(2 * 3.1415926535))) * exp(exponent);
-  }
+  
   
   /// Вычисляет минимальное значение X для анализа.
   /// Возвращает:
@@ -326,16 +316,17 @@ extension BayesianClassifierAsyncAnalysis on BayesianClassifier {
 
   /// Возвращает детализированные результаты классификации.
   /// Принимает:
-  /// - [samplesPerClass] - количество образцов на класс (по умолчанию 1000)
+  /// - [totalSamples] - количество образцов на класс (по умолчанию 1000)
   /// Возвращает:
   /// - [Future<ClassificationResult>] - детализированный результат классификации
   Future<ClassificationResult> calculateDetailedErrorRateAsync({
-    int samplesPerClass = 1000,
+    int totalSamples = 400,
   }) async {
     final testSamples = await TestDataGenerator.generateTestData(
       class1Params: class1,
       class2Params: class2,
-      samplesPerClass: samplesPerClass,
+      totalSamples: totalSamples,
+      class1Probability: p1
     );
     
     return _calculateDetailedErrorRateForSamples(testSamples);
@@ -567,12 +558,12 @@ extension BayesianCalculatorExtension on BayesianClassifier {
       final density2 = BayesianCalculator.calculateDensity(class2, midpoint) * p2;
       
       // 4. Интегрируем МЕНЬШУЮ плотность на интервале
-      if (density1 < density2) {
+      if (density1 < density2) {  
         // Ошибаемся против класса 1 - интегрируем его плотность
-        totalError += BayesianCalculator.integrateDistribution(class1, a, b, p1);
+        totalError += BayesianCalculator.integrateDistribution(class1, a, b, 1.0) * p1;
       } else {
         // Ошибаемся против класса 2 - интегрируем его плотность
-        totalError += BayesianCalculator.integrateDistribution(class2, a, b, p2);
+        totalError += BayesianCalculator.integrateDistribution(class2, a, b, 1.0) * p2;
       }
     }
     
@@ -617,11 +608,11 @@ extension BayesianCalculatorExtension on BayesianClassifier {
       // 4. Интегрируем МЕНЬШУЮ плотность на интервале
       if (density1 < density2) {
         // Ошибаемся против класса 1 - интегрируем его плотность
-        intervalError = BayesianCalculator.integrateDistribution(class1, a, b, p1);
+        intervalError = BayesianCalculator.integrateDistribution(class1, a, b, 1.0) * p1;
         losingClass = class1Name;
       } else {
         // Ошибаемся против класса 2 - интегрируем его плотность
-        intervalError = BayesianCalculator.integrateDistribution(class2, a, b, p2);
+        intervalError = BayesianCalculator.integrateDistribution(class2, a, b, 1.0) * p2;
         losingClass = class2Name;
       }
       

@@ -11,14 +11,19 @@ class TestDataGenerator {
   static Future<List<TestSample>> generateTestData({
     required DistributionParameters class1Params,
     required DistributionParameters class2Params,
-    required int samplesPerClass,
+    required int totalSamples,
+    required double class1Probability, // p(ω₁)
   }) async {
     final samples = <TestSample>[];
     
+    // Рассчитываем количество образцов для каждого класса
+    final class1SamplesCount = (totalSamples * class1Probability).round();
+    final class2SamplesCount = totalSamples - class1SamplesCount;
+
     // Генерация данных для класса 1
     final class1Samples = await _generateFromDistribution(
       class1Params, 
-      samplesPerClass
+      class1SamplesCount
     );
     samples.addAll(class1Samples.map((value) => 
       TestSample(value: value, trueClass: true)));
@@ -26,7 +31,7 @@ class TestDataGenerator {
     // Генерация данных для класса 2
     final class2Samples = await _generateFromDistribution(
       class2Params, 
-      samplesPerClass
+      class2SamplesCount
     );
     samples.addAll(class2Samples.map((value) => 
       TestSample(value: value, trueClass: false)));

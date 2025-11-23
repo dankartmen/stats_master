@@ -1,10 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:stats_master/services/calculators/bayesian_calculator.dart';
 import 'package:stats_master/services/calculators/chart_data_calculator.dart';
 import '../models/bayesian_classifier.dart';
 import '../models/classification_models.dart';
 import '../models/distribution_parameters.dart';
+import '../models/error_calculation_details.dart';
 import 'value_details_screen.dart';
 
 /// {@template bayesian_results_screen}
@@ -40,6 +42,11 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
     )..forward();
     _intersectionPoints = widget.classifier.findIntersectionPoints();
     _calculateTheoreticalError();
+
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _debugDensityCalculation();
+    });
   }
 
   @override
@@ -348,6 +355,35 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
     );
   }
 
+  /// Проверяет расчет плотностей в критических точках
+  void _debugDensityCalculation() {
+    final intersections = _theoreticalErrorInfo!.intersectionPoints;
+    final pointsToCheck = [
+      2.5, 3.0, 3.5, 3.89, 4.0, 4.5, 5.0, 6.0, 7.0
+    ];
+    
+    debugPrint('=== ПРОВЕРКА ПЛОТНОСТЕЙ ===');
+    for (final x in pointsToCheck) {
+      final density1 = _calculateDensity(widget.classifier.class1, x) * widget.classifier.p1;
+      final density2 = _calculateDensity(widget.classifier.class2, x) * widget.classifier.p2;
+      final predictedClass = density1 >= density2;
+      
+      debugPrint('x=$x: p1·f1(x)=${density1.toStringAsFixed(4)}, '
+                'p2·f2(x)=${density2.toStringAsFixed(4)}, '
+                'Класс: ${predictedClass ? widget.classifier.class1Name : widget.classifier.class2Name}');
+    }
+    
+    // Проверим точки пересечения
+    debugPrint('=== ТОЧКИ ПЕРЕСЕЧЕНИЯ ===');
+    for (final x in intersections) {
+      final density1 = _calculateDensity(widget.classifier.class1, x) * widget.classifier.p1;
+      final density2 = _calculateDensity(widget.classifier.class2, x) * widget.classifier.p2;
+      debugPrint('x=$x: p1·f1(x)=${density1.toStringAsFixed(6)}, '
+                'p2·f2(x)=${density2.toStringAsFixed(6)}, '
+                'Разность: ${(density1 - density2).toStringAsFixed(6)}');
+    }
+  }
+
   /// Вычисляет интервал для осей X в графике.
   /// Принимает:
   /// - [minX] - минимальное значение X
@@ -366,64 +402,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
   /// - [params] - параметры распределения
   /// - [x] - значение точки
   double _calculateDensity(DistributionParameters params, double x) {
-    return switch (params) {
-      NormalParameters p => _normalDensity(x, p.m, p.sigma),
-      UniformParameters p => _uniformDensity(x, p.a, p.b),
-      BinomialParameters p => _binomialProbability(p.n, p.p, x.round()),
-      _ => 0,
-    };
-  }
-
-  /// Вычисляет плотность равномерного распределения.
-  /// Принимает:
-  /// - [x] - значение точки
-  /// - [a] - нижняя граница
-  /// - [b] - верхняя граница
-  double _uniformDensity(double x, double a, double b) {
-    return (x >= a && x <= b) ? 1 / (b - a) : 0;
-  }
-
-  /// Вычисляет плотность нормального распределения.
-  /// Принимает:
-  /// - [x] - значение точки
-  /// - [m] - математическое ожидание
-  /// - [sigma] - стандартное отклонение
-  double _normalDensity(double x, double m, double sigma) {
-    final exponent = -0.5 * pow((x - m) / sigma, 2);
-    return (1 / (sigma * sqrt(2 * 3.1415926535))) * exp(exponent);
-  }
-
-  /// Вычисляет вероятность биномиального распределения.
-  /// Принимает:
-  /// - [n] - количество испытаний
-  /// - [p] - вероятность успеха
-  /// - [k] - количество успехов
-  double _binomialProbability(int n, double p, int k) {
-    if (k < 0 || k > n) return 0.0;
-    if (p == 0.0) return (k == 0) ? 1.0 : 0.0; 
-    if (p == 1.0) return (k == n) ? 1.0 : 0.0;
-    
-    final coefficient = _binomialCoefficient(n, k);
-    return (coefficient * pow(p, k) * pow(1 - p, n - k)).toDouble();
-  }
-
-  /// Вычисляет биномиальный коэффициент.
-  /// Принимает:
-  /// - [n] - общее количество
-  /// - [k] - выбираемое количество
-  int _binomialCoefficient(int n, int k) {
-    if (k < 0 || k > n) return 0;
-    if (k == 0 || k == n) return 1;
-    
-    if (k > n - k) {
-      k = n - k;
-    }
-    
-    int result = 1;
-    for (int i = 1; i <= k; i++) {
-      result = result * (n - i + 1) ~/ i;
-    }
-    return result;
+    return BayesianCalculator.calculateDensity(params, x);
   }
 
   /// Вычисляет минимальное значение X для графика.
@@ -581,6 +560,14 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
   void _calculateTheoreticalError() {
     try {
       _theoreticalErrorInfo = widget.classifier.calculateTheoreticalErrorInfoAnalytical();
+       // ДОБАВЬТЕ ОТЛАДОЧНУЮ ПЕЧАТЬ:
+      debugPrint('Точки пересечения: ${_theoreticalErrorInfo!.intersectionPoints}');
+      debugPrint('Общая ошибка: ${_theoreticalErrorInfo!.totalError}');
+      
+      for (final interval in _theoreticalErrorInfo!.intervals) {
+        debugPrint('Интервал [${interval.start.toStringAsFixed(2)}, ${interval.end.toStringAsFixed(2)}]: '
+                  'ошибка=${interval.error.toStringAsFixed(4)}, класс=${interval.losingClass}');
+      }
     } catch (error) {
       debugPrint('Ошибка при расчете теоретической ошибки: $error');
     }
@@ -607,6 +594,11 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
             ),
             const SizedBox(height: 16),
             
+            if (_theoreticalErrorInfo != null) ...[
+              _buildTheoreticalErrorInfo(theme),
+              const SizedBox(height: 16),
+            ],
+            
             Row(
               children: [
                 Expanded(
@@ -632,30 +624,6 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              '1000 samples на класс',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            
-            if (_theoreticalErrorInfo != null) ...[
-              _buildTheoreticalErrorInfo(theme),
-              const SizedBox(height: 16),
-              
-            ],
-
-            if (_isTesting) ...[
-              const SizedBox(height: 16),
-              Column(
-                children: [
-                  CircularProgressIndicator(color: theme.colorScheme.primary),
-                  const SizedBox(height: 12),
-                  Text('Генерация данных и тестирование...', style: theme.textTheme.bodyMedium),
-                ],
-              ),
-            ],
             
             if (_testResult != null) ...[
               const SizedBox(height: 16),
@@ -813,6 +781,261 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
     );
   }
 
+  /// Анализ ошибочных классификаций
+  void _analyzeMisclassifications() {
+    if (_testResult == null) return;
+    
+    final misclassified = _testResult!.classifiedSamples
+        .where((s) => !s.isCorrect)
+        .toList();
+    
+    debugPrint('=== АНАЛИЗ ОШИБОК ===');
+    debugPrint('Всего ошибок: ${misclassified.length}');
+    
+    // Группируем по интервалам
+    final intervals = [
+      (2.0, 3.0, 'До первой точки'),
+      (3.0, 3.89, 'Между точками'), 
+      (3.89, 8.0, 'После второй точки'),
+    ];
+    
+    for (final (start, end, label) in intervals) {
+      final errorsInInterval = misclassified
+          .where((s) => s.value >= start && s.value <= end)
+          .length;
+      final totalInInterval = _testResult!.classifiedSamples
+          .where((s) => s.value >= start && s.value <= end)
+          .length;
+      
+      debugPrint('$label [$start, $end]: $errorsInInterval/$totalInInterval '
+                '(${(errorsInInterval / totalInInterval * 100).toStringAsFixed(1)}%)');
+    }
+  }
+
+  /// Возвращает строковое описание типа распределения.
+  /// Принимает:
+  /// - [params] - параметр распределения
+  String _getDistributionType(DistributionParameters params) {
+    return switch (params) {
+      NormalParameters p => 'N(${p.m.toStringAsFixed(2)}, ${p.sigma.toStringAsFixed(2)})',
+      UniformParameters p => 'U(${p.a.toStringAsFixed(2)}, ${p.b.toStringAsFixed(2)})',
+      _ => 'Неизвестно',
+    };
+  }
+
+  /// Генерирует детали расчета ошибки для интервала.
+  ErrorCalculationDetails _getErrorCalculationDetails(ErrorInterval interval) {
+    final isClass1 = interval.losingClass == widget.classifier.class1Name;
+    final distribution = isClass1 ? widget.classifier.class1 : widget.classifier.class2;
+    final probability = isClass1 ? widget.classifier.p1 : widget.classifier.p2;
+    
+    String formula;
+    String steps;
+    
+    if (distribution is NormalParameters) {
+      final m = distribution.m;
+      final sigma = distribution.sigma;
+      formula = 'P(ω)·[Φ((b-m)/σ) - Φ((a-m)/σ)]';
+      steps = 'P(${isClass1 ? widget.classifier.class1Name : widget.classifier.class2Name}) = $probability\n'
+              'Φ((${interval.end}-$m)/$sigma) - Φ((${interval.start}-$m)/$sigma)\n'
+              '= Φ(${(interval.end - m) / sigma}) - Φ(${(interval.start - m) / sigma})\n'
+              '= ${BayesianCalculator.getLaplaceValue((interval.end - m) / sigma)} - ${BayesianCalculator.getLaplaceValue((interval.start - m) / sigma)}\n'
+              '= ${BayesianCalculator.getLaplaceValue((interval.end - m) / sigma) - BayesianCalculator.getLaplaceValue((interval.start - m) / sigma)}\n'
+              'Ошибка = $probability × ${BayesianCalculator.getLaplaceValue((interval.end - m) / sigma) - BayesianCalculator.getLaplaceValue((interval.start - m) / sigma)} = ${interval.error}';
+    } else if (distribution is UniformParameters) {
+      final aDist = distribution.a;
+      final bDist = distribution.b;
+      final effectiveA = max(interval.start, aDist);
+      final effectiveB = min(interval.end, bDist);
+      final density = probability / (bDist - aDist);
+      
+      formula = 'P(ω) × (min(b,B) - max(a,A)) / (B-A)';
+      steps = 'P(${isClass1 ? widget.classifier.class1Name : widget.classifier.class2Name}) = $probability\n'
+              'Плотность = $probability / (${bDist} - ${aDist}) = $density\n'
+              'Эффективный интервал: [max(${interval.start}, $aDist), min(${interval.end}, $bDist)]\n'
+              '= [$effectiveA, $effectiveB]\n'
+              'Длина = $effectiveB - $effectiveA = ${effectiveB - effectiveA}\n'
+              'Ошибка = $density × ${effectiveB - effectiveA} = ${interval.error}';
+    } else {
+      formula = 'Численное интегрирование';
+      steps = 'Использован метод Симпсона для интегрирования плотности';
+    }
+    
+    return ErrorCalculationDetails(
+      start: interval.start,
+      end: interval.end,
+      losingClass: interval.losingClass,
+      distribution: distribution,
+      probability: probability,
+      errorValue: interval.error,
+      calculationFormula: formula,
+      calculationSteps: steps,
+    );
+  }
+
+  /// Строит кликабельную ячейку с ошибкой.
+  Widget _buildClickableErrorCell(ThemeData theme, ErrorInterval interval) {
+    return TableCell(
+      child: GestureDetector(
+        onTap: () => _showIntervalCalculationDetails(interval),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.3),
+          child: Center(
+            child: Text(
+              interval.error.toStringAsFixed(4),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.secondary,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Показывает детали расчета ошибки для конкретного интервала.
+  void _showIntervalCalculationDetails(ErrorInterval interval) {
+    final details = _getErrorCalculationDetails(interval);
+    final theme = Theme.of(context);
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.calculate, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Детали расчета ошибки',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildIntervalInfo(theme, details),
+              const SizedBox(height: 16),
+              _buildFormulaSection(theme, details),
+              const SizedBox(height: 16),
+              _buildCalculationSteps(theme, details),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Закрыть'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Строит информацию об интервале.
+  Widget _buildIntervalInfo(ThemeData theme, ErrorCalculationDetails details) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Интервал: [${details.start.toStringAsFixed(2)}, ${details.end.toStringAsFixed(2)}]', 
+              style: theme.textTheme.titleMedium),
+          Text('Проигрывающий класс: ${details.losingClass}',
+              style: theme.textTheme.bodyMedium),
+          Text('Распределение: ${_getDistributionType(details.distribution)}',
+              style: theme.textTheme.bodyMedium),
+          Text('Априорная вероятность: ${details.probability.toStringAsFixed(3)}',
+              style: theme.textTheme.bodyMedium),
+        ],
+      ),
+    );
+  }
+
+  /// Строит секцию с формулой.
+  Widget _buildFormulaSection(ThemeData theme, ErrorCalculationDetails details) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.primaryContainer),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Формула расчета:', style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          )),
+          const SizedBox(height: 8),
+          Text(details.calculationFormula, style: theme.textTheme.bodyLarge?.copyWith(
+            fontFamily: 'monospace',
+            backgroundColor: theme.colorScheme.surface,
+          )),
+        ],
+      ),
+    );
+  }
+
+  /// Строит шаги расчета.
+  Widget _buildCalculationSteps(ThemeData theme, ErrorCalculationDetails details) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Шаги расчета:', style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          )),
+          const SizedBox(height: 8),
+          Text(details.calculationSteps, style: theme.textTheme.bodyMedium?.copyWith(
+            fontFamily: 'monospace',
+            height: 1.4,
+          )),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.tertiaryContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Результат:', style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                )),
+                Text(details.errorValue.toStringAsFixed(6), style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.onTertiaryContainer,
+                  fontWeight: FontWeight.bold,
+                )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Строит объяснение метода расчета ошибки.
   /// Принимает:
   /// - [theme] - текущая тема
@@ -883,7 +1106,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
                   children: [
                     _buildTableCell(theme, interval.start.toStringAsFixed(2)),
                     _buildTableCell(theme, interval.end.toStringAsFixed(2)),
-                    _buildTableCell(theme, interval.error.toStringAsFixed(4)),
+                    _buildClickableErrorCell(theme, interval),
                     _buildTableCell(theme, interval.losingClass, color: interval.losingClass == widget.classifier.class1Name ? theme.colorScheme.primary : theme.colorScheme.error),
                     _buildTableCell(theme, '${interval.errorPercentage(info.totalError).toStringAsFixed(1)}%', fontWeight: FontWeight.bold),
                   ],
@@ -1105,13 +1328,21 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
 
     try {
       final result = await widget.classifier.calculateDetailedErrorRateAsync(
-        samplesPerClass: 200,
+        totalSamples: 400,
       );
       
+      // ДОБАВЬТЕ ОТЛАДОЧНУЮ ИНФОРМАЦИЮ:
+      debugPrint('=== ЭКСПЕРИМЕНТАЛЬНЫЕ РЕЗУЛЬТАТЫ ===');
+      debugPrint('Образцов: ${result.totalSamples}');
+      debugPrint('Правильных: ${result.correctClassifications}');
+      debugPrint('Ошибка: ${result.errorRate}');
+      debugPrint('Точки пересечения: ${result.intersectionPoints}');
+
       if (mounted) {
         setState(() {
           _testResult = result;
         });
+        _analyzeMisclassifications();
       }
     } catch (error) {
       if (mounted) {
