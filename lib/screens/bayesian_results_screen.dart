@@ -361,20 +361,14 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
     final pointsToCheck = [
       2.5, 3.0, 3.5, 3.89, 4.0, 4.5, 5.0, 6.0, 7.0
     ];
-    
-    debugPrint('=== ПРОВЕРКА ПЛОТНОСТЕЙ ===');
+
     for (final x in pointsToCheck) {
       final density1 = _calculateDensity(widget.classifier.class1, x) * widget.classifier.p1;
       final density2 = _calculateDensity(widget.classifier.class2, x) * widget.classifier.p2;
       final predictedClass = density1 >= density2;
-      
-      debugPrint('x=$x: p1·f1(x)=${density1.toStringAsFixed(4)}, '
-                'p2·f2(x)=${density2.toStringAsFixed(4)}, '
-                'Класс: ${predictedClass ? widget.classifier.class1Name : widget.classifier.class2Name}');
+
     }
-    
-    // Проверим точки пересечения
-    debugPrint('=== ТОЧКИ ПЕРЕСЕЧЕНИЯ ===');
+
     for (final x in intersections) {
       final density1 = _calculateDensity(widget.classifier.class1, x) * widget.classifier.p1;
       final density2 = _calculateDensity(widget.classifier.class2, x) * widget.classifier.p2;
@@ -560,14 +554,6 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
   void _calculateTheoreticalError() {
     try {
       _theoreticalErrorInfo = widget.classifier.calculateTheoreticalErrorInfoAnalytical();
-       // ДОБАВЬТЕ ОТЛАДОЧНУЮ ПЕЧАТЬ:
-      debugPrint('Точки пересечения: ${_theoreticalErrorInfo!.intersectionPoints}');
-      debugPrint('Общая ошибка: ${_theoreticalErrorInfo!.totalError}');
-      
-      for (final interval in _theoreticalErrorInfo!.intervals) {
-        debugPrint('Интервал [${interval.start.toStringAsFixed(2)}, ${interval.end.toStringAsFixed(2)}]: '
-                  'ошибка=${interval.error.toStringAsFixed(4)}, класс=${interval.losingClass}');
-      }
     } catch (error) {
       debugPrint('Ошибка при расчете теоретической ошибки: $error');
     }
@@ -602,21 +588,10 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _showClassificationDebug,
-                    icon: const Icon(Icons.search),
-                    label: const Text('Проверить классификацию'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _runClassificationTest,
                     icon: const Icon(Icons.play_arrow),
-                    label: const Text('Полный тест'),
+                    label: const Text('Начать тест'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
@@ -781,36 +756,8 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
     );
   }
 
-  /// Анализ ошибочных классификаций
-  void _analyzeMisclassifications() {
-    if (_testResult == null) return;
-    
-    final misclassified = _testResult!.classifiedSamples
-        .where((s) => !s.isCorrect)
-        .toList();
-    
-    debugPrint('=== АНАЛИЗ ОШИБОК ===');
-    debugPrint('Всего ошибок: ${misclassified.length}');
-    
-    // Группируем по интервалам
-    final intervals = [
-      (2.0, 3.0, 'До первой точки'),
-      (3.0, 3.89, 'Между точками'), 
-      (3.89, 8.0, 'После второй точки'),
-    ];
-    
-    for (final (start, end, label) in intervals) {
-      final errorsInInterval = misclassified
-          .where((s) => s.value >= start && s.value <= end)
-          .length;
-      final totalInInterval = _testResult!.classifiedSamples
-          .where((s) => s.value >= start && s.value <= end)
-          .length;
-      
-      debugPrint('$label [$start, $end]: $errorsInInterval/$totalInInterval '
-                '(${(errorsInInterval / totalInInterval * 100).toStringAsFixed(1)}%)');
-    }
-  }
+  
+
 
   /// Возвращает строковое описание типа распределения.
   /// Принимает:
@@ -1059,7 +1006,6 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
           const Text('• На каждом интервале вычисляется интеграл от меньшей из плотностей:'),
           const Text('  min(p(ω₁)·f₁(x), p(ω₂)·f₂(x))'),
           const Text('• Сумма интегралов дает общую вероятность ошибки'),
-          const Text('• Метод Симпсона с 100 шагами на интервал'),
         ],
       ),
     );
@@ -1293,7 +1239,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
       child: Column(
         children: [
           Text(
-            'Частота ошибок: ${(result.errorRate * 100).toStringAsFixed(2)}%',
+            'Эмперическая вероятность ошибки: ${(result.errorRate * 100).toStringAsFixed(2)}%',
             style: theme.textTheme.titleMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -1330,19 +1276,11 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
       final result = await widget.classifier.calculateDetailedErrorRateAsync(
         totalSamples: 400,
       );
-      
-      // ДОБАВЬТЕ ОТЛАДОЧНУЮ ИНФОРМАЦИЮ:
-      debugPrint('=== ЭКСПЕРИМЕНТАЛЬНЫЕ РЕЗУЛЬТАТЫ ===');
-      debugPrint('Образцов: ${result.totalSamples}');
-      debugPrint('Правильных: ${result.correctClassifications}');
-      debugPrint('Ошибка: ${result.errorRate}');
-      debugPrint('Точки пересечения: ${result.intersectionPoints}');
 
       if (mounted) {
         setState(() {
           _testResult = result;
         });
-        _analyzeMisclassifications();
       }
     } catch (error) {
       if (mounted) {
@@ -1582,80 +1520,7 @@ class _BayesianResultsScreenState extends State<BayesianResultsScreen>
     );
   }
 
-  /// Показывает детальную проверку классификации для нескольких тестовых значений.
-  void _showClassificationDebug() {
-    final testSamples = <TestSample>[
-      TestSample(value: 2.5, trueClass: false),
-      TestSample(value: 3.5, trueClass: true),
-      TestSample(value: 4.0, trueClass: true),
-      TestSample(value: 4.5, trueClass: true),
-      TestSample(value: 5.5, trueClass: false),
-      TestSample(value: 6.0, trueClass: false),
-    ];
-
-    final debugResults = <ClassificationDebugResult>[];
-
-    for (final sample in testSamples) {
-      final x = sample.value;
-      
-      final density1 = _calculateDensity(widget.classifier.class1, x) * widget.classifier.p1;
-      final density2 = _calculateDensity(widget.classifier.class2, x) * widget.classifier.p2;
-      
-      final predictedClass = density1 >= density2;
-      
-      final isCorrect = predictedClass == sample.trueClass;
-      
-      debugResults.add(ClassificationDebugResult(
-        value: x,
-        trueClass: sample.trueClass,
-        predictedClass: predictedClass,
-        density1: density1,
-        density2: density2,
-        isCorrect: isCorrect,
-        decisionRule: density1 >= density2 ? 'p₁·f₁(x) ≥ p₂·f₂(x)' : 'p₁·f₁(x) < p₂·f₂(x)',
-      ));
-    }
-
-    final theme = Theme.of(context);
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.bug_report, color: theme.colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Детальная проверка классификации',
-                    style: theme.textTheme.titleLarge,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ..._buildDebugResults(theme, debugResults),
-              const SizedBox(height: 20),
-              _buildDebugSummary(theme, debugResults),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                  label: const Text('Закрыть'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  
 
   /// Строит список результатов отладки.
   /// Принимает:
